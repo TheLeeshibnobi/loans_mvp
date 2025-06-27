@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>InXource Header</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        .main-wrapper {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+
+        .content-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            margin: 0 auto;
+            max-width: 1400px;
+            padding: 30px;
+        }
+
+        .gradient-text {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+
+        .subtitle-text {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .header-section {
+            margin-bottom: 2rem;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .main-wrapper {
+                padding: 10px;
+            }
+
+            .content-container {
+                padding: 20px;
+                border-radius: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-wrapper">
+        <div class="content-container">
+            <!-- Header Section -->
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="header-section text-center">
+                            <h1 class="display-4 gradient-text mb-2">📘 InXource Loan Dashboard</h1>
+                            <p class="subtitle-text mb-0">Real-time insights into loan performance and borrower activity</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Section -->
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12">
+                        <nav class="navbar navbar-expand-lg navbar-light bg-light rounded-3 shadow-sm mb-5">
+                            <div class="container-fluid">
+                                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                                    <span class="navbar-toggler-icon"></span>
+                                </button>
+                                <div class="collapse navbar-collapse" id="navbarNav">
+                                    <ul class="navbar-nav mx-auto">
+                                        <li class="nav-item">
+                                            <a class="nav-link active fw-semibold" aria-current="page" href="{{ url_for('overview_dashboard') }}">📊 Overview</a>                                        </li>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link fw-semibold" href="{{ url_for('loan_repayment') }}">💰 Record Repayment</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link fw-semibold" href="{{ url_for('search_borrower') }}">📝 Submit Loan</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link fw-semibold" href="{{ url_for('customer_analytics_dashboard') }}">👥 Customer Analytics</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link fw-semibold" href="{{ url_for('business_analytics') }}">📈 Business Analytics</a>
+                                        </li>
+
+                                        <li class="nav-item">
+                                            <a class="nav-link fw-semibold" href="{{ url_for('ai_agents') }}">👨‍💼 Agents</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link fw-semibold" href="{{ url_for('settings') }}">⚙️ Settings</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+</body>
+</html>

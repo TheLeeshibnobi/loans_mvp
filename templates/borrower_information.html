@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container-fluid py-4">
+    <!-- Header Section -->
+    <div class="card bg-primary text-white mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="card-title mb-2">{{ borrower_data.name or 'John Smith' }}</h1>
+                    <p class="card-text mb-0">NRC: {{ borrower_data.nrc_number or 'BRW-2024-001' }}</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <button class="btn btn-light me-2" onclick="window.print()">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                    <button class="btn btn-outline-light">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Cards Grid -->
+    <div class="row g-4 mb-4">
+        <!-- Payment History Card -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history me-2"></i>Payment History with Us
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <span class="text-muted">Overall Status:</span>
+                        </div>
+                        <div class="col-6 text-end">
+                            <span class="badge bg-success">{{ payment_history.status or 'Unknown' }}</span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <span class="text-muted">On-Time Payments:</span>
+                        </div>
+                        <div class="col-6 text-end">
+                            <strong>{{ payment_history.on_time_payments or 'Unknown' }}</strong>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <span class="text-muted">Late Payments:</span>
+                        </div>
+                        <div class="col-6 text-end">
+                            <strong class="text-warning">{{ payment_history.late_payments or '0' }}</strong>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <span class="text-muted">Last Payment:</span>
+                        </div>
+                        <div class="col-6 text-end">
+                            <strong>{{ payment_history.last_repayment_date or 'Unknown' }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Outstanding Debts Card -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-dollar-sign me-2"></i>Outstanding Debts with Us
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <span class="text-muted">Total Outstanding:</span>
+                        </div>
+                        <div class="col-6 text-end">
+                            <strong class="fs-5 text-primary">${{ outstanding_debts.total_outstanding or 'unknown' }}</strong>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <span class="text-muted">Active Loans:</span>
+                        </div>
+                        <div class="col-6 text-end">
+                            <strong>{{ outstanding_debts.active_loans or 'unknown' }}</strong>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <span class="text-muted">Next Payment Due:</span>
+                        </div>
+                        <div class="col-6 text-end">
+                            <strong>{{ outstanding_debts.earliest_date or 'unknown' }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Default Risk Card -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line me-2"></i>Default Risk Assessment
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <span class="text-muted">Risk Level:</span>
+                        </div>
+                        <div class="col-6 text-end">
+                            <span class="badge bg-success">{{ default_assessment.risk_level or 'Unknown' }}</span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <span class="text-muted">Risk Score:</span>
+                        </div>
+                        <div class="col-6 text-end">
+                            <strong class="text-success">{{ default_assessment.risk_score or 'Unknown' }}</strong>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <span class="text-muted">Missed Payments:</span>
+                        </div>
+                        <div class="col-6 text-end">
+                            <strong>{{ default_assessment.missed_payments or 'Unknown' }}</strong>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <span class="text-muted">Customer Since:</span>
+                        </div>
+                        <div class="col-6 text-end">
+                            <strong>{{ default_assessment.customer_since or 'Unknown' }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Status Card -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-user-check me-2"></i>Account Status
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <span class="text-muted">Total Loaned:</span>
+                        </div>
+                        <div class="col-6 text-end">
+                            <strong>ZMK{{ credit_status.total_loaned or 'Unknown' }}</strong>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <span class="text-muted">Total Repaid:</span>
+                        </div>
+                        <div class="col-6 text-end">
+                            <strong class="text-success">ZMK{{ credit_status.total_repaid or 'Unknown' }}</strong>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <span class="text-muted">Total Income Interest:</span>
+                        </div>
+                        <div class="col-6 text-end">
+                            <strong class="text-success">ZMK{{ credit_status.total_income_interest or 'Unknown' }}</strong>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <span class="text-muted">Last Contract:</span>
+                        </div>
+                        <div class="col-6 text-end">
+                            <strong>{{ credit_status.last_contract or 'Unknown' }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-dark text-white">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-history me-2"></i>Loan History with Us
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Start Date</th>
+                        <th>Amount</th>
+                        <th>Interest Rate</th>
+                        <th>End Date</th>
+                        <th>Status</th>
+                        <th>Payments Made</th>
+                        <th>Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for data in recent_borrower_history %}
+                        <tr>
+                            <td><strong>{{ data.start_date or 'Unknown' }}</strong></td>
+                            <td><strong>{{ data.amount or 'Unknown' }}</strong></td>
+                            <td><strong>{{ data.interest_rate or 'Unknown' }}</strong></td>
+                            <td><strong>{{ data.end_date or 'Unknown' }}</strong></td>
+                            <td><strong>{{ data.status or 'Unknown' }}</strong></td>
+                            <td><strong>{{ data.repaid_amount or 'Unknown' }}</strong></td>
+                            <td><strong>{{ data.balance or 'Unknown' }}</strong></td>
+                        </tr>
+                    {% endfor %}
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    function toggleNoteForm() {
+        const form = document.getElementById('note-form');
+        form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    }
+</script>
+
+{% endblock %}

@@ -1,0 +1,339 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Borrower Information Display -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Borrower Information</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Name:</strong>
+                    <span class="borrower-name">{{ borrower_identity.name or 'John Doe' }}</span>
+                </div>
+                <div class="col-md-6">
+                    <strong>NRC Number:</strong>
+                    <span class="borrower-nrc">{{ borrower_identity.nrc or '123456/78/9' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loan Submission Form -->
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <h4 class="mb-0">Loan Application Details</h4>
+        </div>
+        <div class="card-body">
+
+            <form id="loanForm" method="POST" enctype="multipart/form-data" action="{{ url_for('submit_loan') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+                <!-- Hidden field for borrower_id -->
+                <input type="hidden" name="borrower_id" value="{{ borrower_id }}">
+
+                <!-- Loan Amount Section -->
+                <div class="form-section mb-4">
+                    <h5 class="section-title">Loan Amount</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="amount" class="form-label">Loan Amount (ZMW) *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">ZMW</span>
+                                <input type="number" class="form-control" id="amount" name="amount"
+                                       step="0.01" min="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="transaction_costs" class="form-label">Transaction Costs (ZMW)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">ZMW</span>
+                                <input type="number" class="form-control" id="transaction_costs"
+                                       name="transaction_costs" step="0.01" min="0" value="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loan Terms Section -->
+                <div class="form-section mb-4">
+                    <h5 class="section-title">Loan Terms</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label for="interest_rate" class="form-label">Interest Rate (%) *</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="interest_rate"
+                                       name="interest_rate" step="0.01" min="0" max="100" required>
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="duration_days" class="form-label">Duration (Days) *</label>
+                            <input type="number" class="form-control" id="duration_days"
+                                   name="duration_days" min="1" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="due_date" class="form-label">Due Date *</label>
+                            <input type="date" class="form-control" id="due_date" name="due_date" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!--reason for loan-->
+                <div class="form-group">
+                    <label for="loan_reason">Reason for Loan <span class="required">*</span></label>
+                    <input list="loan-reasons" id="loan_reason" name="loan_reason" class="form-control" placeholder="Start typing reason..." required>
+                    <datalist id="loan-reasons">
+                        <option value="School fees">
+                        <option value="Medical expenses">
+                        <option value="Home construction">
+                        <option value="House rentals">
+                        <option value="Business capital">
+                        <option value="Farming inputs">
+                        <option value="Car purchase">
+                        <option value="Funeral expenses">
+                        <option value="Debt consolidation">
+                        <option value="Household items">
+                        <option value="Travel expenses">
+                        <option value="Wedding costs">
+                        <option value="Emergency needs">
+                        <option value="Property purchase">
+                        <option value="Tuition fees">
+                        <option value="Utility bills">
+                        <option value="Land acquisition">
+                        <option value="Furniture purchase">
+                        <option value="Phone or gadget purchase">
+                        <option value="Livestock purchase">
+                    </datalist>
+                </div>
+
+
+                <!-- Contract Documentation Section -->
+                <div class="form-section mb-4">
+                    <h5 class="section-title">Contract Documentation</h5>
+                    <div class="row">
+                        <div class="col-12">
+                            <label for="contract_file" class="form-label">Contract File *</label>
+                            <input type="file" class="form-control" id="contract_file" name="contract_file"
+                                   accept=".pdf,.doc,.docx" required>
+                            <div class="form-text">Accepted formats: PDF, DOC, DOCX</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Collateral Section -->
+                <div class="form-section mb-4">
+                    <h5 class="section-title">Collateral Images</h5>
+                    <div class="row">
+                        <div class="col-12">
+                            <label for="collateral_images" class="form-label">Collateral Images</label>
+                            <input type="file" class="form-control" id="collateral_images"
+                                   name="collateral_images" multiple accept="image/*">
+                            <div class="form-text">You can upload up to 10 images. Accepted formats: JPG, PNG, GIF</div>
+                            <div id="image-preview" class="mt-3"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loan Summary Section -->
+                <div class="form-section mb-4">
+                    <h5 class="section-title">Loan Summary</h5>
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Total Amount:</strong> <span id="total-amount">ZMW 0.00</span></p>
+                                    <p><strong>Interest Amount:</strong> <span id="interest-amount">ZMW 0.00</span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Total Repayment:</strong> <span id="total-repayment">ZMW 0.00</span></p>
+                                    <p><strong>Monthly Payment:</strong> <span id="monthly-payment">ZMW 0.00</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="text-center">
+                    <button type="submit" class="btn btn-success btn-lg px-5" onclick="return validateForm()">
+                        Submit Loan Application
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<style>
+.form-section {
+    border-left: 4px solid #28a745;
+    padding-left: 20px;
+}
+
+.section-title {
+    color: #28a745;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: none;
+}
+
+.card-header {
+    border-bottom: 2px solid rgba(255,255,255,0.2);
+}
+
+.borrower-name, .borrower-nrc {
+    font-size: 1.1em;
+    color: #333;
+    font-weight: 500;
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+    border-color: #ced4da;
+}
+
+.form-control:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+    transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+    transform: translateY(-1px);
+}
+
+#image-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.image-preview-item {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.image-preview-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.image-count {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+}
+
+
+</style>
+
+<script>
+// Simple calculations for loan summary
+function updateLoanSummary() {
+    const amount = parseFloat(document.getElementById('amount').value) || 0;
+    const interestRate = parseFloat(document.getElementById('interest_rate').value) || 0;
+    const durationDays = parseInt(document.getElementById('duration_days').value) || 0;
+    const transactionCosts = parseFloat(document.getElementById('transaction_costs').value) || 0;
+
+    const totalAmount = amount + transactionCosts;
+    const interestAmount = (amount * interestRate / 100);
+    const totalRepayment = totalAmount + interestAmount;
+    const monthlyPayment = durationDays > 0 ? totalRepayment / (durationDays / 30) : 0;
+
+    document.getElementById('total-amount').textContent = 'ZMW ' + totalAmount.toFixed(2);
+    document.getElementById('interest-amount').textContent = 'ZMW ' + interestAmount.toFixed(2);
+    document.getElementById('total-repayment').textContent = 'ZMW ' + totalRepayment.toFixed(2);
+    document.getElementById('monthly-payment').textContent = 'ZMW ' + monthlyPayment.toFixed(2);
+}
+
+// Update calculations when inputs change
+document.getElementById('amount').addEventListener('input', updateLoanSummary);
+document.getElementById('interest_rate').addEventListener('input', updateLoanSummary);
+document.getElementById('duration_days').addEventListener('input', updateLoanSummary);
+document.getElementById('transaction_costs').addEventListener('input', updateLoanSummary);
+
+// Handle file upload preview for images
+document.getElementById('collateral_images').addEventListener('change', function(e) {
+    const files = e.target.files;
+    const preview = document.getElementById('image-preview');
+    preview.innerHTML = '';
+
+    if (files.length > 10) {
+        alert('You can only upload up to 10 images');
+        e.target.value = '';
+        return;
+    }
+
+    for (let i = 0; i < Math.min(files.length, 10); i++) {
+        const file = files[i];
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const div = document.createElement('div');
+                div.className = 'image-preview-item';
+                div.innerHTML = '<img src="' + e.target.result + '" alt="Preview"><div class="image-count">' + (i + 1) + '</div>';
+                preview.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+});
+
+// Calculate due date based on duration
+document.getElementById('duration_days').addEventListener('input', function() {
+    const days = parseInt(this.value);
+    if (days > 0) {
+        const today = new Date();
+        const dueDate = new Date(today.getTime() + (days * 24 * 60 * 60 * 1000));
+        document.getElementById('due_date').value = dueDate.toISOString().split('T')[0];
+    }
+});
+
+// Validate form before submission
+function validateForm() {
+    const contractFile = document.getElementById('contract_file').files;
+    if (!contractFile.length) {
+        alert('Please upload a contract file (PDF, DOC, or DOCX).');
+        return false;
+    }
+    return true;
+}
+</script>
+{% endblock %}

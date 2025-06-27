@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<form action="{{ url_for('process_repayment') }}" method="POST" class="p-4 border rounded shadow-sm bg-light">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+
+  <h4 class="mb-4">Repay Loan</h4>
+
+  <!-- Amount -->
+  <div class="mb-3">
+    <label for="amount" class="form-label">Repayment Amount</label>
+    <input type="number" name="amount" id="amount" class="form-control" min="0" step="0.01" required>
+  </div>
+
+  <!-- Discount -->
+  <div class="mb-3">
+    <label for="discount" class="form-label">Discount Amount</label>
+    <input type="number" name="discount" id="discount" class="form-control" min="0" step="0.01" placeholder="0.00">
+    <div class="form-text">Optional: Enter any discount amount to be applied to this repayment</div>
+  </div>
+
+  <!-- Repayment Date -->
+  <div class="mb-3">
+    <label for="repayment_date" class="form-label">Repayment Date</label>
+    <input type="date" name="repayment_date" id="repayment_date" class="form-control" required>
+  </div>
+
+  <!-- Status -->
+  <div class="mb-3">
+    <label for="status" class="form-label">Loan Status</label>
+    <select name="status" id="status" class="form-select" required>
+      <option value="" disabled selected>Select status</option>
+      <option value="Active">Active</option>
+      <option value="Completed">Completed</option>
+      <option value="Default">Default</option>
+      <option value="Overdue">Overdue</option>
+    </select>
+  </div>
+
+  <!-- Hidden Loan ID (if needed) -->
+  <input type="hidden" name="loan_id" value="{{ loan.id }}">
+
+  <!-- Submit -->
+  <button type="submit" class="btn btn-primary">Submit Repayment</button>
+</form>
+
+<script>
+  flatpickr("#repayment_date", {
+    dateFormat: "Y-m-d", // matches HTML5 format
+    altInput: true,
+    altFormat: "F j, Y", // user-friendly format
+    allowInput: true
+  });
+</script>
+
+{% endblock %}

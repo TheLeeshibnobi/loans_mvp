@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="form-container">
+    <form method="POST" action="{{ url_for('business_analytics') }}">
+      <!-- Add the CSRF token as a hidden input -->
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+
+      <select name="gender">
+        <option value="All" {% if selected_gender == 'All' %}selected{% endif %}>All</option>
+        <option value="Male" {% if selected_gender == 'Male' %}selected{% endif %}>Male</option>
+        <option value="Female" {% if selected_gender == 'Female' %}selected{% endif %}>Female</option>
+      </select>
+
+      <select name="months">
+        <option value="All Months" {% if selected_month == 'All Months' %}selected{% endif %}>All Months</option>
+        <option value="January" {% if selected_month == 'January' %}selected{% endif %}>January</option>
+        <option value="February" {% if selected_month == 'February' %}selected{% endif %}>February</option>
+        <option value="March" {% if selected_month == 'March' %}selected{% endif %}>March</option>
+        <option value="April" {% if selected_month == 'April' %}selected{% endif %}>April</option>
+        <option value="May" {% if selected_month == 'May' %}selected{% endif %}>May</option>
+        <option value="June" {% if selected_month == 'June' %}selected{% endif %}>June</option>
+        <option value="July" {% if selected_month == 'July' %}selected{% endif %}>July</option>
+        <option value="August" {% if selected_month == 'August' %}selected{% endif %}>August</option>
+        <option value="September" {% if selected_month == 'September' %}selected{% endif %}>September</option>
+        <option value="October" {% if selected_month == 'October' %}selected{% endif %}>October</option>
+        <option value="November" {% if selected_month == 'November' %}selected{% endif %}>November</option>
+        <option value="December" {% if selected_month == 'December' %}selected{% endif %}>December</option>
+      </select>
+
+      <input type="text" name="year" value="{{ selected_year or '' }}" placeholder="Enter Year">
+
+      <button type="submit">Submit</button>
+    </form>
+</div>
+
+<!--key statistics cards-->
+<div class="container my-4">
+  <div class="row g-3" id="statsGrid">
+
+    <div class="col-12 col-sm-6 col-md-3">
+      <div class="stat-card kpi shadow-sm rounded p-3 text-center bg-white">
+        <div class="stat-value fs-3 fw-bold" id="totalCustomers">{{ total_loans_issued or 0 }}</div>
+        <div class="stat-label text-muted">Total Loans Issued</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-3">
+      <div class="stat-card kpi shadow-sm rounded p-3 text-center bg-white">
+        <div class="stat-value fs-3 fw-bold" id="bestProvince">{{ revenue_generated or 'N/A' }}</div>
+        <div class="stat-label text-muted">Revenue Generated</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-3">
+      <div class="stat-card kpi shadow-sm rounded p-3 text-center bg-white">
+        <div class="stat-value fs-3 fw-bold" id="worstProvince">{{ default_rate or 'N/A' }}</div>
+        <div class="stat-label text-muted">Default Rate</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-3">
+      <div class="stat-card kpi shadow-sm rounded p-3 text-center bg-white">
+        <div class="stat-value fs-3 fw-bold" id="avgLoanAmount">{{ active_portfolio or 0 }}</div>
+        <div class="stat-label text-muted">Active Portfolio</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Display error message if any -->
+{% if error_message %}
+<div class="container my-4">
+  <div class="alert alert-danger" role="alert">
+    {{ error_message }}
+  </div>
+</div>
+{% endif %}
+
+<form class="container mt-4" method="POST" action="{{ url_for('business_analytics') }}">
+  <!-- Add the CSRF token as a hidden input -->
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+
+  <!-- IMPORTANT: Add hidden fields to preserve the previous selections -->
+  <input type="hidden" name="gender" value="{{ selected_gender or 'All' }}"/>
+  <!--<input type="hidden" name="months" value="{{ selected_month or 'All Months' }}"/>-->
+  <input type="hidden" name="year" value="{{ selected_year or '' }}"/>
+
+  <div class="row justify-content-center align-items-center g-2">
+
+    <!-- Label -->
+    <div class="col-auto">
+      <label for="loanReason" class="col-form-label fw-bold text-nowrap">Loan Reason:</label>
+    </div>
+
+    <!-- Input with datalist -->
+    <div class="col-md-5">
+      <input class="form-control" list="loan-reasons" id="loanReason" name="loan_reason" value="{{ selected_loan_reason or '' }}" placeholder="Type to search..." required>
+      <datalist id="loan-reasons">
+        <option value="School fees">
+        <option value="Medical expenses">
+        <option value="Home construction">
+        <option value="House rentals">
+        <option value="Business capital">
+        <option value="Farming inputs">
+        <option value="Car purchase">
+        <option value="Funeral expenses">
+        <option value="Debt consolidation">
+        <option value="Household items">
+        <option value="Travel expenses">
+        <option value="Wedding costs">
+        <option value="Emergency needs">
+        <option value="Property purchase">
+        <option value="Tuition fees">
+        <option value="Utility bills">
+        <option value="Land acquisition">
+        <option value="Furniture purchase">
+        <option value="Phone or gadget purchase">
+        <option value="Livestock purchase">
+      </datalist>
+    </div>
+
+    <!-- Button -->
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary">View Trend</button>
+    </div>
+
+  </div>
+</form>
+
+<!--charts-->
+<div class="container mt-4">
+  {% if loan_reason_trend_chart %}
+    <div class="col-12">
+      <div class="p-3 rounded shadow-sm" style="background-color: #e9f5ff;">
+          {{ loan_reason_trend_chart|safe }}
+      </div>
+    </div>
+  {% else %}
+    <div class="col-12">
+      <div class="p-3 rounded shadow-sm" style="background-color: #e9f5ff;">
+          <p class="text-danger fw-medium fs-5">
+              Please select a loan reason to see its trend!
+          </p>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+
+
+<div class="container mt-4">
+  <div class="col-12">
+      <div class="p-3 rounded shadow-sm" style="background-color: #e9f5ff;">
+          {{ interest_vs_transaction_costs_chart|safe }}
+      </div>
+  </div>
+</div>
+
+<div class="container mt-4">
+  <div class="col-12">
+      <div class="p-3 rounded shadow-sm" style="background-color: #e9f5ff;">
+          {{ loan_repayments_vs_discount_chart|safe }}
+      </div>
+  </div>
+</div>
+
+
+<style>
+.form-container {
+  padding: 20px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+label {
+  background: #f0f0f0;
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+label input {
+  display: none;
+}
+
+label input:checked + span {
+  background: #6b48ff;
+  color: white;
+}
+
+select, input[type="number"], input[type="text"], button {
+  padding: 10px 20px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  font-size: 16px;
+}
+
+button {
+  background: #6b48ff;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  form {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+/* Cards styling */
+.stat-card.kpi {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card.kpi:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.stat-value {
+  color: #4b4bff;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const labels = document.querySelectorAll('label');
+  labels.forEach(label => {
+    label.addEventListener('click', function() {
+      const radio = this.querySelector('input');
+      radio.checked = true;
+    });
+  });
+});
+</script>
+
+{% endblock %}

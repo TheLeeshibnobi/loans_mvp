@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid vh-100 d-flex align-items-center justify-content-center">
+    <div class="row w-100">
+        <div class="col-12 col-md-8 col-lg-6 mx-auto text-center">
+
+            <!-- Main Coming Soon Card -->
+            <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+                <div class="card-body p-5">
+
+                    <!-- Animated Icon -->
+                    <div class="mb-4">
+                        <div class="position-relative d-inline-block">
+                            <i class="fas fa-robot display-1 text-primary mb-3 animated-icon"></i>
+                            <div class="pulse-ring"></div>
+                        </div>
+                    </div>
+
+                    <!-- Main Title -->
+                    <h1 class="display-4 fw-bold text-primary mb-3">
+                        AI Agents
+                    </h1>
+
+                    <!-- Subtitle -->
+                    <h2 class="h3 text-muted mb-4">
+                        Coming Soon
+                    </h2>
+
+                    <!-- Description -->
+                    <p class="lead text-secondary mb-4">
+                        We're working on something amazing! Our AI Agents feature will revolutionize
+                        how you interact with artificial intelligence. Stay tuned for intelligent
+                        automation and smart assistance.
+                    </p>
+
+                    <!-- Feature Preview -->
+                    <div class="row g-3 mb-5">
+                        <div class="col-md-4">
+                            <div class="feature-box p-3 rounded-3 bg-light">
+                                <i class="fas fa-brain text-primary mb-2"></i>
+                                <h6 class="fw-semibold">Smart AI</h6>
+                                <small class="text-muted">Intelligent decision making</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="feature-box p-3 rounded-3 bg-light">
+                                <i class="fas fa-cogs text-primary mb-2"></i>
+                                <h6 class="fw-semibold">Automation</h6>
+                                <small class="text-muted">Streamlined workflows</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="feature-box p-3 rounded-3 bg-light">
+                                <i class="fas fa-rocket text-primary mb-2"></i>
+                                <h6 class="fw-semibold">Fast & Efficient</h6>
+                                <small class="text-muted">Lightning-fast responses</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Development Progress</span>
+                            <span class="text-primary fw-semibold">75%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated"
+                                 role="progressbar" style="width: 75%" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notification Signup -->
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-3">Get notified when we launch</h6>
+                        <div class="row g-2">
+                            <div class="col-md-8">
+                                <input type="email" class="form-control form-control-lg"
+                                       placeholder="Enter your email address" id="notifyEmail">
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-primary btn-lg w-100" onclick="subscribeNotification()">
+                                    <i class="fas fa-bell me-2"></i>Notify Me
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Back Button -->
+                    <div class="mt-4">
+                        <a href="{{ url_for('overview_dashboard') }}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Estimated Launch -->
+            <div class="mt-4">
+                <p class="text-muted">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    Estimated Launch: <strong>Q2 2025</strong>
+                </p>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Custom CSS -->
+<style>
+    .animated-icon {
+        animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% {
+            transform: translateY(0);
+        }
+        40% {
+            transform: translateY(-10px);
+        }
+        60% {
+            transform: translateY(-5px);
+        }
+    }
+
+    .pulse-ring {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 120px;
+        height: 120px;
+        border: 3px solid var(--bs-primary);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        animation: pulse 2s infinite;
+        opacity: 0.3;
+    }
+
+    @keyframes pulse {
+        0% {
+            transform: translate(-50%, -50%) scale(0.8);
+            opacity: 0.8;
+        }
+        100% {
+            transform: translate(-50%, -50%) scale(1.2);
+            opacity: 0;
+        }
+    }
+
+    .feature-box {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .feature-box:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+
+    .card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    }
+
+    .progress-bar {
+        background: linear-gradient(90deg, var(--bs-primary), #0d6efd);
+    }
+</style>
+
+<!-- JavaScript -->
+<script>
+    function subscribeNotification() {
+        const email = document.getElementById('notifyEmail').value;
+
+        if (!email) {
+            alert('Please enter your email address');
+            return;
+        }
+
+        if (!validateEmail(email)) {
+            alert('Please enter a valid email address');
+            return;
+        }
+
+        // Here you would typically send the email to your backend
+        // For now, we'll just show a success message
+        alert('Thank you! We\'ll notify you when AI Agents launches.');
+        document.getElementById('notifyEmail').value = '';
+    }
+
+    function validateEmail(email) {
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return re.test(email);
+    }
+
+    // Add some interactive elements
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animate progress bar on load
+        setTimeout(function() {
+            const progressBar = document.querySelector('.progress-bar');
+            progressBar.style.width = '75%';
+        }, 500);
+    });
+</script>
+
+{% endblock %}

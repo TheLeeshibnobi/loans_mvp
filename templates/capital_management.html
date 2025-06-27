@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="display-4 mb-5">Capital Management</h1>
+
+    <!-- Buttons to Trigger Modals -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="card-title h4">Manage Capital and Dividends</h2>
+            <p class="card-text text-muted mb-4">Add capital or distribute dividends with transaction proof documents.</p>
+            <div class="d-flex gap-3">
+                <button id="dividendBtn" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#dividendModal">Dividend Payout</button>
+                <button id="capitalBtn" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#capitalModal">Capital Injection</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dividend Payout Modal -->
+<div class="modal fade" id="dividendModal" tabindex="-1" aria-labelledby="dividendModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="dividendModalLabel">Dividend Payout</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="dividendForm" action="/capital_management" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+                    <input type="hidden" name="form_type" value="dividend"/>
+                    <!-- rest of the form fields remain the same -->
+                    <div class="mb-3">
+                        <label for="dividendOwner" class="form-label">Owner</label>
+                        <select id="dividendOwner" name="owner" class="form-select" required>
+                            <option value="" disabled selected>Select an owner</option>
+                            {% for user_name in owners %}
+                            <option value="{{ user_name }}">{{ user_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="dividendAmount" class="form-label">Amount ($)</label>
+                        <input type="number" id="dividendAmount" name="amount" class="form-control" min="0" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="dividendStatus" class="form-label">Status</label>
+                        <select id="dividendStatus" name="status" class="form-select" required>
+                            <option value="" disabled selected>Select status</option>
+                            <option value="partial">Partial</option>
+                            <option value="full">Full</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="dividendFile" class="form-label">Transaction Proof</label>
+                        <input type="file" id="dividendFile" name="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Capital Injection Modal -->
+<div class="modal fade" id="capitalModal" tabindex="-1" aria-labelledby="capitalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="capitalModalLabel">Capital Injection</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="capitalForm" action="/capital_management" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+                    <input type="hidden" name="form_type" value="capital"/>
+                    <!-- rest of the form fields remain the same -->
+                    <div class="mb-3">
+                        <label for="capitalOwner" class="form-label">Owner</label>
+                        <select id="capitalOwner" name="owner" class="form-select" required>
+                            <option value="" disabled selected>Select an owner</option>
+                            {% for user_name in owners %}
+                            <option value="{{ user_name }}">{{ user_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="capitalAmount" class="form-label">Amount ($)</label>
+                        <input type="number" id="capitalAmount" name="amount" class="form-control" min="0" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="capitalStatus" class="form-label">Status</label>
+                        <select id="capitalStatus" name="status" class="form-select" required>
+                            <option value="" disabled selected>Select status</option>
+                            <option value="partial">Partial</option>
+                            <option value="full">Full</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="capitalFile" class="form-label">Transaction Proof</label>
+                        <input type="file" id="capitalFile" name="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Reset forms when modals are closed
+    document.getElementById('dividendModal').addEventListener('hidden.bs.modal', () => {
+        document.getElementById('dividendForm').reset();
+        document.getElementById('dividendOwner').selectedIndex = 0;
+        document.getElementById('dividendStatus').selectedIndex = 0;
+    });
+
+    document.getElementById('capitalModal').addEventListener('hidden.bs.modal', () => {
+        document.getElementById('capitalForm').reset();
+        document.getElementById('capitalOwner').selectedIndex = 0;
+        document.getElementById('capitalStatus').selectedIndex = 0;
+    });
+</script>
+{% endblock %}

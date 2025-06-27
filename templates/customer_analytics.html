@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="form-container">
+  <form method="POST" action="{{ url_for('customer_analytics_dashboard') }}">
+  <!-- Add the CSRF token as a hidden input -->
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+
+  <select name="gender">
+    <option value="All" {% if selected_gender == 'All' %}selected{% endif %}>All</option>
+    <option value="Male" {% if selected_gender == 'Male' %}selected{% endif %}>Male</option>
+    <option value="Female" {% if selected_gender == 'Female' %}selected{% endif %}>Female</option>
+  </select>
+
+  <select name="months">
+    <option value="All Months" {% if selected_month == 'All Months' %}selected{% endif %}>All Months</option>
+    <option value="January" {% if selected_month == 'January' %}selected{% endif %}>January</option>
+    <option value="February" {% if selected_month == 'February' %}selected{% endif %}>February</option>
+    <option value="March" {% if selected_month == 'March' %}selected{% endif %}>March</option>
+    <option value="April" {% if selected_month == 'April' %}selected{% endif %}>April</option>
+    <option value="May" {% if selected_month == 'May' %}selected{% endif %}>May</option>
+    <option value="June" {% if selected_month == 'June' %}selected{% endif %}>June</option>
+    <option value="July" {% if selected_month == 'July' %}selected{% endif %}>July</option>
+    <option value="August" {% if selected_month == 'August' %}selected{% endif %}>August</option>
+    <option value="September" {% if selected_month == 'September' %}selected{% endif %}>September</option>
+    <option value="October" {% if selected_month == 'October' %}selected{% endif %}>October</option>
+    <option value="November" {% if selected_month == 'November' %}selected{% endif %}>November</option>
+    <option value="December" {% if selected_month == 'December' %}selected{% endif %}>December</option>
+  </select>
+
+  <input type="text" name="year" value="{{ selected_year or '' }}" placeholder="Enter Year">
+
+  <button type="submit">Submit</button>
+</form>
+</div>
+
+<!--key statistics cards-->
+<div class="container my-4">
+  <div class="row g-3" id="statsGrid">
+
+    <div class="col-12 col-sm-6 col-md-3">
+      <div class="stat-card kpi shadow-sm rounded p-3 text-center bg-white">
+        <div class="stat-value fs-3 fw-bold" id="totalCustomers">{{ total_customers or 0 }}</div>
+        <div class="stat-label text-muted">Total Customers</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-3">
+      <div class="stat-card kpi shadow-sm rounded p-3 text-center bg-white">
+        <div class="stat-value fs-3 fw-bold" id="bestProvince">{{ best_location or 'N/A' }}</div>
+        <div class="stat-label text-muted">Best Location</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-3">
+      <div class="stat-card kpi shadow-sm rounded p-3 text-center bg-white">
+        <div class="stat-value fs-3 fw-bold" id="worstProvince">{{ worst_location or 'N/A' }}</div>
+        <div class="stat-label text-muted">Needs Attention</div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-md-3">
+      <div class="stat-card kpi shadow-sm rounded p-3 text-center bg-white">
+        <div class="stat-value fs-3 fw-bold" id="avgLoanAmount">{{ average_amount or 0 }}</div>
+        <div class="stat-label text-muted">Avg Loan Amount</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Display error message if any -->
+{% if error_message %}
+<div class="container my-4">
+  <div class="alert alert-danger" role="alert">
+    {{ error_message }}
+  </div>
+</div>
+{% endif %}
+
+
+<!--charts-->
+
+<div class="container mt-4">
+    <div class="row g-4">
+        <div class="col-12 col-md-4">
+            <div class="p-3 rounded shadow-sm" style="background-color: #e9f5ff;">
+                {{ loans_location_chart|safe }}
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="p-3 rounded shadow-sm" style="background-color: #e9f5ff;">
+                {{ loans_occupation_chart|safe }}
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="p-3 rounded shadow-sm" style="background-color: #e9f5ff;">
+                {{ age_group_chart|safe }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--performance kpi cards-->
+<div class="container mt-5">
+    <h4 class="fw-bold mb-4">🏆 Province Performance Ranking</h4>
+</div>
+{% for location, score in location_scores.items() %}
+<div class="container mt-3">
+    <div class="card bg-light shadow-sm p-3 mb-3">
+        <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+                <div class="display-6 fw-bold text-primary">{{ loop.index }}</div>
+                <div class="fs-5 fw-semibold text-dark">{{ location }}</div>
+            </div>
+            <div class="fs-5 fw-bold text-success">{{ score }}</div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+
+<style>
+.form-container {
+  padding: 20px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+label {
+  background: #f0f0f0;
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+label input {
+  display: none;
+}
+
+label input:checked + span {
+  background: #6b48ff;
+  color: white;
+}
+
+select, input[type="number"], button {
+  padding: 10px 20px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  font-size: 16px;
+}
+
+button {
+  background: #6b48ff;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  form {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+/* Cards styling */
+.stat-card.kpi {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card.kpi:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.stat-value {
+  color: #4b4bff;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const labels = document.querySelectorAll('label');
+  labels.forEach(label => {
+    label.addEventListener('click', function() {
+      const radio = this.querySelector('input');
+      radio.checked = true;
+    });
+  });
+});
+</script>
+{% endblock %}

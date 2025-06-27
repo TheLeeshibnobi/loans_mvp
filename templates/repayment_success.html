@@ -1,0 +1,252 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+  .success-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .success-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(circle at 20% 80%, rgba(120, 219, 226, 0.3) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(255, 118, 117, 0.3) 0%, transparent 50%),
+      radial-gradient(circle at 40% 40%, rgba(120, 219, 226, 0.2) 0%, transparent 50%);
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(1deg); }
+  }
+
+  .success-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    box-shadow:
+      0 25px 50px -12px rgba(0, 0, 0, 0.25),
+      0 0 0 1px rgba(255, 255, 255, 0.1);
+    padding: 3rem 2.5rem;
+    position: relative;
+    z-index: 2;
+    max-width: 500px;
+    animation: slideUp 0.8s ease-out;
+    transform-style: preserve-3d;
+  }
+
+  @keyframes slideUp {
+    0% {
+      opacity: 0;
+      transform: translateY(50px) scale(0.9);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .success-icon {
+    font-size: 5rem;
+    color: #10b981;
+    animation: checkPulse 2s ease-in-out infinite;
+    text-shadow: 0 0 30px rgba(16, 185, 129, 0.5);
+  }
+
+  @keyframes checkPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+
+  .success-title {
+    color: #1f2937;
+    font-weight: 700;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .success-subtitle {
+    color: #6b7280;
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+  }
+
+  .success-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: none;
+    color: white;
+    padding: 12px 32px;
+    border-radius: 50px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .success-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+  }
+
+  .success-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.6);
+    color: white;
+    text-decoration: none;
+  }
+
+  .success-btn:hover::before {
+    left: 100%;
+  }
+
+  .success-btn:active {
+    transform: translateY(0);
+  }
+
+  .particles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    animation: particleFloat 3s linear infinite;
+  }
+
+  @keyframes particleFloat {
+    0% {
+      transform: translateY(100vh) rotate(0deg);
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    90% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-10px) rotate(360deg);
+      opacity: 0;
+    }
+  }
+
+  .success-details {
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: 12px;
+    padding: 1rem;
+    margin: 1.5rem 0;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+  }
+
+  .success-checkmark {
+    display: inline-block;
+    margin-right: 8px;
+    color: #10b981;
+    font-size: 1.1rem;
+  }
+
+  @media (max-width: 768px) {
+    .success-card {
+      margin: 1rem;
+      padding: 2rem 1.5rem;
+    }
+
+    .success-icon {
+      font-size: 4rem;
+    }
+  }
+</style>
+
+<div class="success-container d-flex justify-content-center align-items-center vh-100">
+  <!-- Floating particles -->
+  <div class="particles">
+    <div class="particle" style="left: 10%; animation-delay: 0s;"></div>
+    <div class="particle" style="left: 20%; animation-delay: 0.5s;"></div>
+    <div class="particle" style="left: 30%; animation-delay: 1s;"></div>
+    <div class="particle" style="left: 40%; animation-delay: 1.5s;"></div>
+    <div class="particle" style="left: 50%; animation-delay: 2s;"></div>
+    <div class="particle" style="left: 60%; animation-delay: 2.5s;"></div>
+    <div class="particle" style="left: 70%; animation-delay: 0.8s;"></div>
+    <div class="particle" style="left: 80%; animation-delay: 1.3s;"></div>
+    <div class="particle" style="left: 90%; animation-delay: 1.8s;"></div>
+  </div>
+
+  <div class="text-center">
+    <div class="success-card">
+      <div class="success-icon">
+        <i class="bi bi-check-circle-fill"></i>
+      </div>
+
+      <h2 class="success-title">Payment Successful!</h2>
+      <p class="success-subtitle">Your loan repayment has been processed successfully and recorded in your account.</p>
+
+      <div class="success-details">
+        <div class="mb-2">
+          <span class="success-checkmark">✓</span>
+          Payment confirmed and verified
+        </div>
+        <div class="mb-2">
+          <span class="success-checkmark">✓</span>
+          Account balance updated
+        </div>
+        <div>
+          <span class="success-checkmark">✓</span>
+          Receipt sent to your email
+        </div>
+      </div>
+
+      <a href="{{ url_for('overview_dashboard') }}" class="success-btn">
+        <i class="bi bi-house-door me-2"></i>
+        Return to Dashboard
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+// Add some interactive particles on click
+document.addEventListener('click', function(e) {
+  const particle = document.createElement('div');
+  particle.className = 'particle';
+  particle.style.left = e.clientX + 'px';
+  particle.style.top = e.clientY + 'px';
+  particle.style.position = 'fixed';
+  particle.style.pointerEvents = 'none';
+  particle.style.zIndex = '9999';
+  document.body.appendChild(particle);
+
+  setTimeout(() => {
+    particle.remove();
+  }, 3000);
+});
+</script>
+
+{% endblock %}

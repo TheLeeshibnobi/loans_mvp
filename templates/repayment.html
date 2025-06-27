@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 16px;
+    }
+
+    .form-container {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        padding: 2rem !important;
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .form-title {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 2rem;
+        font-size: 2rem;
+    }
+
+    .btn-gradient {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        border: none;
+        color: white;
+        font-weight: 600;
+        border-radius: 50px;
+        padding: 12px 30px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-gradient:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .form-control, .form-select {
+        border-radius: 15px;
+        border: 2px solid #e9ecef;
+        padding: 12px 20px;
+        font-size: 14px;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+
+    .table {
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+
+    .table thead th {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        font-weight: 600;
+        padding: 15px;
+    }
+
+    .table tbody td {
+        padding: 15px;
+        border-color: #e9ecef;
+        vertical-align: middle;
+    }
+
+    .alert {
+        border-radius: 15px;
+        border: none;
+        font-weight: 500;
+    }
+
+    .card-header {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        border-radius: 15px 15px 0 0 !important;
+        font-weight: 600;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 8px;
+    }
+
+    .input-group-text {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        border-radius: 15px 0 0 15px;
+    }
+
+    .badge {
+        border-radius: 50px;
+        padding: 8px 15px;
+        font-weight: 500;
+    }
+
+    .status-active { background: linear-gradient(45deg, #28a745, #20c997); }
+    .status-overdue { background: linear-gradient(45deg, #ffc107, #fd7e14); }
+    .status-default { background: linear-gradient(45deg, #dc3545, #e83e8c); }
+    .status-completed { background: linear-gradient(45deg, #6f42c1, #6610f2); }
+
+    .card {
+        border-radius: 16px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+        padding: 1rem;
+        transition: all 0.3s ease-in-out;
+    }
+
+    .card:hover {
+        box-shadow: 0 0 0.75rem rgba(0,0,0,0.15);
+        transform: scale(1.02);
+    }
+
+    .card-body {
+        padding: 1rem !important;
+    }
+
+    .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .card-text {
+        font-size: 0.95rem;
+    }
+</style>
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10 col-xl-8">
+            <div class="form-container">
+                <h1 class="form-title">
+                    <i class="bi bi-bank2 me-3"></i>Loan Repayment System
+                </h1>
+
+                <!-- Search Form -->
+                <div class="card border-0 shadow-sm mb-5">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-person-badge me-2"></i>Borrower Identification
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('loan_repayment') }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+                            <div class="mb-4">
+                                <label for="nrc" class="form-label">
+                                    <i class="bi bi-card-text me-2"></i>Borrower NRC
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-person-vcard"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="nrc" name="nrc"
+                                           placeholder="Enter National Registration Card Number"
+                                           value="{{ searched_nrc if searched_nrc else '' }}" required>
+                                </div>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-gradient btn-lg">
+                                    <i class="bi bi-search me-2"></i>Search Borrower
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Loan Results Section -->
+                {% if loans is not none %}
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-list-ul me-2"></i>Loan Results
+                            <span class="float-end">NRC: {{ searched_nrc }}</span>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if loans %}
+                        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4 px-2">
+                            {% for loan in loans %}
+                            <div class="col">
+                                <a href="{{ url_for('repayment_form', loan_id=loan.id) }}" class="text-decoration-none text-dark">
+                                    <div class="card shadow-sm h-100">
+                                        <div class="card-body">
+                                            <h5 class="card-title">ZMW {{ "{:,.2f}".format(loan.amount) }}</h5>
+                                            <p class="card-text mb-1"><strong>Interest:</strong> {{ loan.interest_rate }}%</p>
+                                            <p class="card-text mb-1"><strong>Due Date:</strong> {{ loan.due_date }}</p>
+                                            <span class="badge
+                                                {% if loan.status == 'Active' %} bg-success
+                                                {% elif loan.status == 'Overdue' %} bg-warning text-dark
+                                                {% elif loan.status == 'Default' %} bg-danger
+                                                {% else %} bg-secondary
+                                                {% endif %}
+                                            ">{{ loan.status }}</span>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info mt-4">
+                            No loans found for this borrower.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+{% endblock %}

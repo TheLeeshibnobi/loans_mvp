@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <!-- Success Card -->
+            <div class="card border-0 shadow-lg">
+                <div class="card-body text-center p-5">
+                    <!-- Success Icon -->
+                    <div class="success-icon mb-4">
+                        <div class="check-circle">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="12" r="10" fill="#28a745"/>
+                                <path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Success Message -->
+                    <h1 class="display-6 text-success fw-bold mb-3">Loan Submitted Successfully!</h1>
+                    <p class="lead text-muted mb-4">
+                        Your loan application has been submitted and is now being reviewed by our team.
+                    </p>
+
+                    <!-- Loan Details Summary -->
+                    <div class="card bg-light border-0 mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title text-dark mb-3">Application Summary</h5>
+                            <div class="row text-start">
+                                <div class="col-6">
+                                    <!--<p class="mb-2"><strong>Loan ID:</strong></p>-->
+                                    <p class="mb-2"><strong>Amount:</strong></p>
+                                    <p class="mb-2"><strong>Duration:</strong></p>
+                                </div>
+                                <div class="col-6">
+                                    <!--<p class="mb-2 text-primary fw-bold" id="loan-id">#{{ loan_id }}</p>-->
+                                    <p class="mb-2">ZMW {{ "{:,.2f}".format(loan_amount) }}</p>
+                                    <p class="mb-2">{{ loan_duration }} days</p>
+                                </div>
+                            </div>
+                            <div class="row text-start">
+                                <div class="col-6">
+                                    <p class="mb-2"><strong>Interest Rate:</strong></p>
+                                    <p class="mb-0"><strong>Due Date:</strong></p>
+                                </div>
+                                <div class="col-6">
+                                    <p class="mb-2">{{ interest_rate }}%</p>
+                                    <p class="mb-0">{{ due_date }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Navigation Buttons -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <a href="{{ url_for('borrower_information', borrower_id=borrower_id) }}" class="btn btn-primary">View Borrower Information</a>
+                        <a href="{{ url_for('loan_form', borrower_id=borrower_id) }}" class="btn btn-secondary">Submit Another Loan</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.success-icon .check-circle {
+    display: inline-block;
+    animation: scaleIn 0.5s ease-out;
+}
+
+@keyframes scaleIn {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.card {
+    border-radius: 15px;
+}
+
+.shadow-lg {
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
+}
+
+.btn {
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+}
+
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+
+.text-success {
+    color: #28a745 !important;
+}
+
+.text-primary {
+    color: #007bff !important;
+}
+
+body {
+    background-color: #f8f9fa;
+}
+
+/* Custom spacing for better mobile view */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    .card-body {
+        padding: 2rem 1.5rem !important;
+    }
+
+    .d-grid .btn {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Add subtle animation to the entire card */
+.card {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    0% {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+
+<script>
+// Smooth scroll to top
+document.addEventListener('DOMContentLoaded', function() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// Copy reference number to clipboard
+function copyReferenceNumber() {
+    const refNumber = document.getElementById('loan-id').textContent;
+    navigator.clipboard.writeText(refNumber).then(function() {
+        const originalText = document.getElementById('loan-id').textContent;
+        document.getElementById('loan-id').textContent = 'Copied!';
+        setTimeout(function() {
+            document.getElementById('loan-id').textContent = originalText;
+        }, 1500);
+    }).catch(function() {
+        console.log('Could not copy reference number');
+    });
+}
+
+// Make reference number clickable
+document.getElementById('loan-id').style.cursor = 'pointer';
+document.getElementById('loan-id').addEventListener('click', copyReferenceNumber);
+</script>
+
+<!-- Add custom Jinja filter for currency formatting -->
+{% macro format_currency(value) %}
+    {{ "{:,.2f}".format(value) }}
+{% endmacro %}
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="display-4 mb-5">Settings</h1>
+
+    <!-- Secret Key Generation Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="card-title h4">Generate Secret Key</h2>
+            <p class="card-text text-muted mb-4">Generate a new secret key for user registration.</p>
+
+            <!-- Form for key generation -->
+            <form id="keyForm" method="POST" action="/save-key">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+                <div class="mb-3">
+                    <button type="button" id="generateKeyBtn" class="btn btn-primary">Generate Key</button>
+                </div>
+
+                <div id="keyDisplay" class="mb-3" style="display: none;">
+                    <label for="secret_key" class="form-label">Generated Key:</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control fs-5 fw-bold" id="secret_key" name="secret_key" readonly>
+                        <button type="button" id="copyKeyBtn" class="btn btn-outline-secondary">Copy</button>
+                    </div>
+                </div>
+
+                <div id="saveSection" class="mb-3" style="display: none;">
+                    <button type="submit" id="saveKeyBtn" class="btn btn-success">Save Key to Database</button>
+                </div>
+            </form>
+
+            <p class="text-muted small mt-2">Note: Keys are stored securely in the database upon saving.</p>
+        </div>
+    </div>
+
+    <!-- Capital Management Link -->
+    <div class="card">
+        <div class="card-body">
+            <h2 class="card-title h4">Manage Capital</h2>
+            <p class="card-text text-muted mb-4">Add or update capital and distribute dividends with transaction proof documents.</p>
+            <a href="{{ url_for('capital_management') }}" class="btn btn-primary">Go to Capital Management</a>
+        </div>
+    </div>
+</div>
+
+<!-- Success/Error Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="position-fixed top-0 end-0 p-3" style="z-index: 1055;">
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<script>
+    // Generate Key
+    document.getElementById('generateKeyBtn').addEventListener('click', () => {
+        // Generate a random key
+        const generatedKey = Math.random().toString(36).substr(2, 10).toUpperCase();
+
+        // Display the key in the form
+        document.getElementById('secret_key').value = generatedKey;
+        document.getElementById('keyDisplay').style.display = 'block';
+        document.getElementById('saveSection').style.display = 'block';
+
+        console.log('Generated key:', generatedKey);
+    });
+
+    // Copy Key to clipboard
+    document.getElementById('copyKeyBtn').addEventListener('click', () => {
+        const keyInput = document.getElementById('secret_key');
+        if (keyInput.value) {
+            navigator.clipboard.writeText(keyInput.value).then(() => {
+                // Temporary feedback
+                const originalText = document.getElementById('copyKeyBtn').textContent;
+                document.getElementById('copyKeyBtn').textContent = 'Copied!';
+                setTimeout(() => {
+                    document.getElementById('copyKeyBtn').textContent = originalText;
+                }, 2000);
+            }).catch(() => {
+                alert('Failed to copy key to clipboard.');
+            });
+        }
+    });
+
+    // Form submission feedback
+    document.getElementById('keyForm').addEventListener('submit', (e) => {
+        const saveBtn = document.getElementById('saveKeyBtn');
+        const keyValue = document.getElementById('secret_key').value;
+
+        if (!keyValue) {
+            e.preventDefault();
+            alert('Please generate a key first!');
+            return;
+        }
+
+        // Show loading state
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+
+        console.log('Submitting form with key:', keyValue);
+    });
+</script>
+
+{% endblock %}

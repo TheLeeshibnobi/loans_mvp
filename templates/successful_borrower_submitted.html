@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="confirmation-wrapper">
+        <div class="success-icon">
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+        </div>
+        <h2>Borrower Registered Successfully!</h2>
+        <p class="confirmation-message">
+            The borrower <strong>{{ borrower_name }}</strong> with NRC Number <strong>{{ nrc_number }}</strong> has been successfully registered in the system.
+        </p>
+        <div class="confirmation-details">
+            <h3>Details</h3>
+            <ul>
+                <li><strong>Full Name:</strong> {{ borrower_name }}</li>
+                <li><strong>NRC Number:</strong> {{ nrc_number }}</li>
+                {% if mobile %}
+                <li><strong>Mobile Number:</strong> {{ mobile }}</li>
+                {% endif %}
+                {% if location %}
+                <li><strong>Location:</strong> {{ location }}</li>
+                {% endif %}
+            </ul>
+        </div>
+        <div class="action-buttons">
+            <a href="{{ url_for('register_borrower') }}" class="btn btn-primary">Register Another Borrower</a>
+            <a href="{{ url_for('search_borrower') }}" class="btn btn-secondary">Search Borrowers</a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .confirmation-wrapper {
+        background: #fff;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+
+    .success-icon {
+        margin-bottom: 20px;
+    }
+
+    .success-icon svg {
+        stroke: #28a745;
+    }
+
+    h2 {
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 28px;
+    }
+
+    .confirmation-message {
+        color: #555;
+        font-size: 16px;
+        margin-bottom: 30px;
+    }
+
+    .confirmation-details {
+        text-align: left;
+        max-width: 500px;
+        margin: 0 auto 30px;
+    }
+
+    .confirmation-details h3 {
+        color: #333;
+        font-size: 20px;
+        margin-bottom: 15px;
+    }
+
+    .confirmation-details ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    .confirmation-details li {
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+        font-size: 16px;
+        color: #555;
+    }
+
+    .confirmation-details li strong {
+        color: #333;
+        margin-right: 10px;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+    }
+
+    .btn {
+        padding: 12px 30px;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-primary {
+        background-color: #3498db;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #2980b9;
+    }
+
+    .btn-secondary {
+        background-color: #95a5a6;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background-color: #7f8c8d;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            padding: 10px;
+        }
+
+        .confirmation-wrapper {
+            padding: 20px;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Minimal JS to ensure buttons are accessible
+        const buttons = document.querySelectorAll('.btn');
+        buttons.forEach(button => {
+            button.addEventListener('click', function() {
+                window.location.href = this.href;
+            });
+        });
+    });
+</script>
+{% endblock %}

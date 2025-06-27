@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="form-wrapper">
+        <h2>Register New Borrower</h2>
+
+        <form id="borrowerForm" method="POST" action="/register_borrower">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+            <div class="form-group">
+                <label for="name">Full Name <span class="required">*</span></label>
+                <input type="text" id="name" name="name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="gender">Gender <span class="required">*</span></label>
+                <select id="gender" name="gender" required>
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="location">Location <span class="required">*</span></label>
+                <select id="location" name="location" class="form-control" required>
+                    <option value="">-- Select your town --</option>
+                    <option value="Lusaka">Lusaka</option>
+                    <option value="Ndola">Ndola</option>
+                    <option value="Kitwe">Kitwe</option>
+                    <option value="Livingstone">Livingstone</option>
+                    <option value="Chingola">Chingola</option>
+                    <option value="Chipata">Chipata</option>
+                    <option value="Kasama">Kasama</option>
+                    <option value="Mansa">Mansa</option>
+                    <option value="Kabwe">Kabwe</option>
+                    <option value="Solwezi">Solwezi</option>
+                    <option value="Mongu">Mongu</option>
+                    <option value="Mazabuka">Mazabuka</option>
+                    <option value="Kalulushi">Kalulushi</option>
+                    <option value="Luanshya">Luanshya</option>
+                    <option value="Choma">Choma</option>
+                    <option value="Kapiri Mposhi">Kapiri Mposhi</option>
+                    <option value="Mpika">Mpika</option>
+                    <option value="Petauke">Petauke</option>
+                    <option value="Mufulira">Mufulira</option>
+                    <option value="Kafue">Kafue</option>
+                    <option value="Siavonga">Siavonga</option>
+                </select>
+            </div>
+
+
+            <div class="form-group">
+                <label for="nrc_number">NRC Number <span class="required">*</span></label>
+                <input type="text" id="nrc_number" name="nrc_number" placeholder="e.g., 123456/12/1" required>
+                <small class="form-help">Format: XXXXXX/XX/X</small>
+            </div>
+
+            <div class="form-group">
+                <label for="mobile">Mobile Number <span class="required">*</span></label>
+                <input type="tel" id="mobile" name="mobile" placeholder="e.g., +260 97 1234567" required>
+            </div>
+
+            <div class="form-group">
+                <label for="occupation">Occupation <span class="required">*</span></label>
+                <select id="occupation" name="occupation" class="form-control" required>
+                    <option value="">-- Select your occupation --</option>
+                    <option value="Civil Servant">Civil Servant</option>
+                    <option value="Private Employment">Private Employment</option>
+                    <option value="Business">Business</option>
+                    <option value="General Worker">General Worker</option>
+                    <option value="Student">Student</option>
+                </select>
+            </div>
+
+
+            <div class="form-group">
+                <label for="birth_date">Date of Birth <span class="required">*</span></label>
+                <input type="date" id="birth_date" name="birth_date" required>
+            </div>
+
+            <div class="form-group">
+                <label for="notes">Notes</label>
+                <textarea id="notes" name="notes" rows="4" placeholder="Additional information about the borrower (optional)"></textarea>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Register Borrower</button>
+                <button type="reset" class="btn btn-secondary">Clear Form</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .form-wrapper {
+        background: #fff;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 {
+        color: #333;
+        margin-bottom: 30px;
+        text-align: center;
+        font-size: 28px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #555;
+    }
+
+    .required {
+        color: #e74c3c;
+    }
+
+    input[type="text"],
+    input[type="tel"],
+    input[type="date"],
+    select,
+    textarea {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+        transition: border-color 0.3s ease;
+        box-sizing: border-box;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+    }
+
+    .form-help {
+        display: block;
+        margin-top: 5px;
+        color: #666;
+        font-size: 14px;
+    }
+
+    textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .form-actions {
+        text-align: center;
+        margin-top: 30px;
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+    }
+
+    .btn {
+        padding: 12px 30px;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-primary {
+        background-color: #3498db;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #2980b9;
+    }
+
+    .btn-secondary {
+        background-color: #95a5a6;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background-color: #7f8c8d;
+    }
+
+    .error {
+        border-color: #e74c3c !important;
+    }
+
+    .error-message {
+        color: #e74c3c;
+        font-size: 14px;
+        margin-top: 5px;
+        display: block;
+    }
+
+    .success-message {
+        background-color: #d4edda;
+        color: #155724;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+        border: 1px solid #c3e6cb;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            padding: 10px;
+        }
+
+        .form-wrapper {
+            padding: 20px;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('borrowerForm');
+        const nrcInput = document.getElementById('nrc_number');
+        const mobileInput = document.getElementById('mobile');
+        const birthDateInput = document.getElementById('birth_date');
+
+        // NRC Number formatting and validation
+        nrcInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^\d]/g, '');
+            if (value.length >= 6) {
+                value = value.substring(0, 6) + '/' + value.substring(6);
+            }
+            if (value.length >= 9) {
+                value = value.substring(0, 9) + '/' + value.substring(9);
+            }
+            if (value.length > 11) {
+                value = value.substring(0, 11);
+            }
+            e.target.value = value;
+        });
+
+        // Mobile number formatting
+        mobileInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^\d+]/g, '');
+            if (value.startsWith('260')) {
+                value = '+' + value;
+            } else if (value.startsWith('0') && value.length > 1) {
+                value = '+260' + value.substring(1);
+            }
+            e.target.value = value;
+        });
+
+        // Set max date for birth date (18 years ago)
+        const today = new Date();
+        const maxDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+        birthDateInput.max = maxDate.toISOString().split('T')[0];
+
+        // Form validation
+        form.addEventListener('submit', function(e) {
+            let isValid = true;
+
+            // Clear previous error messages
+            document.querySelectorAll('.error-message').forEach(msg => msg.remove());
+            document.querySelectorAll('.error').forEach(field => field.classList.remove('error'));
+
+            // Validate NRC format
+            const nrcPattern = /^\d{6}\/\d{2}\/\d$/;
+            if (!nrcPattern.test(nrcInput.value)) {
+                showError(nrcInput, 'Please enter a valid NRC number format (XXXXXX/XX/X)');
+                isValid = false;
+            }
+
+            // Validate mobile number
+            const mobilePattern = /^\+260\d{9}$/;
+            if (!mobilePattern.test(mobileInput.value.replace(/\s/g, ''))) {
+                showError(mobileInput, 'Please enter a valid Zambian mobile number');
+                isValid = false;
+            }
+
+            // Validate age (must be at least 18)
+            const birthDate = new Date(birthDateInput.value);
+            const age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+
+            if (age < 18) {
+                showError(birthDateInput, 'Borrower must be at least 18 years old');
+                isValid = false;
+            }
+
+            if (!isValid) {
+                e.preventDefault();
+            }
+        });
+
+        function showError(field, message) {
+            field.classList.add('error');
+            const errorDiv = document.createElement('span');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            field.parentNode.appendChild(errorDiv);
+        }
+
+        // Clear form function
+        document.querySelector('button[type="reset"]').addEventListener('click', function() {
+            // Clear any error states
+            document.querySelectorAll('.error-message').forEach(msg => msg.remove());
+            document.querySelectorAll('.error').forEach(field => field.classList.remove('error'));
+        });
+    });
+</script>
+{% endblock %}

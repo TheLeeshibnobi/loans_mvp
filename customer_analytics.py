@@ -6,6 +6,7 @@ import os
 from calendar import monthrange
 from collections import Counter
 from collections import defaultdict
+import logging
 
 import plotly.express as px
 import plotly.graph_objects as go
@@ -20,7 +21,10 @@ class CustomerAnalytics:
         if not url or not service_role_key:
             raise ValueError("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not set.")
 
-        self.supabase: Client = create_client(url, service_role_key)
+        try:
+            self.supabase: Client = create_client(url, service_role_key)
+        except Exception as e:
+            raise ValueError(f"Failed to create Supabase client: {str(e)}")
 
     def month_map(self, year: int):
         """Defines a month map with proper date ranges for a given year."""
@@ -52,83 +56,108 @@ class CustomerAnalytics:
 
     def apply_gender_filter(self, query, gender):
         """Applies gender filtering to a Supabase query."""
-        if gender == "All":
-            return query.or_("gender.eq.Male,gender.eq.Female")
-        else:
-            return query.eq("gender", gender)
+        try:
+            if gender == "All":
+                return query.or_("gender.eq.Male,gender.eq.Female")
+            else:
+                return query.eq("gender", gender)
+        except Exception as e:
+            logging.error(f"Error applying gender filter: {str(e)}")
+            return query
 
     def total_customers(self, gender, month, year):
         """Returns the total number of customers based on gender, month, and year."""
-        # Validate inputs
-        if not isinstance(year, int):
-            try:
-                year = int(year)
-            except (ValueError, TypeError):
-                raise ValueError(f"Year must be a valid integer, got: {year}")
+        try:
+            # Validate inputs
+            if not isinstance(year, int):
+                try:
+                    year = int(year)
+                except (ValueError, TypeError):
+                    raise ValueError(f"Year must be a valid integer, got: {year}")
 
-        start, end = self.month_map(year)[month]
+            start, end = self.month_map(year)[month]
 
-        query = (self.supabase
-                 .table("borrowers")
-                 .select("nrc_number")
-                 .gte("created_at", start)
-                 .lte("created_at", end))
+            query = (self.supabase
+                     .table("borrowers")
+                     .select("nrc_number")
+                     .gte("created_at", start)
+                     .lte("created_at", end))
 
-        query = self.apply_gender_filter(query, gender)
+            query = self.apply_gender_filter(query, gender)
 
-        response = query.execute()
-        return len(response.data)
+            response = query.execute()
+            return len(response.data) if response.data else 0
+        except Exception as e:
+            logging.error(f"Error in total_customers: {str(e)}")
+            return 0
 
     def get_location_by_status(self, gender, year, month, statuses):
         """
         Returns the most common location among borrowers with given loan statuses
         (e.g., ['Overdue', 'Default'] for worst, ['Completed'] for best).
         """
-        # Validate inputs
-        if not isinstance(year, int):
-            try:
-                year = int(year)
-            except (ValueError, TypeError):
-                raise ValueError(f"Year must be a valid integer, got: {year}")
+        try:
+            # Validate inputs
+            if not isinstance(year, int):
+                try:
+                    year = int(year)
+                except (ValueError, TypeError):
+                    raise ValueError(f"Year must be a valid integer, got: {year}")
 
-        start, end = self.month_map(year)[month]
+            if not statuses:
+                return "No data found"
 
-        # Step 1: Build status filter string for Supabase .or_()
-        status_filter = ",".join([f"status.eq.{s}" for s in statuses])
+            start, end = self.month_map(year)[month]
 
-        # Step 2: Query loans with matching statuses
-        loan_query = (self.supabase
-                      .table("loans")
-                      .select("borrower_id, status")
-                      .or_(status_filter)
-                      .gte("created_at", start)
-                      .lte("created_at", end))
+            # Step 1: Build status filter string for Supabase .or_()
+            status_filter = ",".join([f"status.eq.{s}" for s in statuses])
 
-        loan_response = loan_query.execute()
-        default_ids = [item['borrower_id'] for item in loan_response.data]
+            # Step 2: Query loans with matching statuses
+            loan_query = (self.supabase
+                          .table("loans")
+                          .select("borrower_id, status")
+                          .or_(status_filter)
+                          .gte("created_at", start)
+                          .lte("created_at", end))
 
-        # Step 3: Get borrower locations
-        locations = []
-        for borrower_id in default_ids:
-            borrower_query = (self.supabase
-                              .table('borrowers')
-                              .select('location')
-                              .eq('id', borrower_id))
+            loan_response = loan_query.execute()
+            if not loan_response.data:
+                return "No data found"
 
-            borrower_query = self.apply_gender_filter(borrower_query, gender)
-            borrower_response = borrower_query.execute()
+            default_ids = [item['borrower_id'] for item in loan_response.data if item.get('borrower_id')]
 
-            data = borrower_response.data
-            if data:
-                locations.append(data[0]['location'])
+            if not default_ids:
+                return "No data found"
 
-        # Step 4: Return the most common location (with tie handling)
-        if locations:
-            location_counts = Counter(locations)
-            max_count = max(location_counts.values())
-            tied_locations = [loc for loc, count in location_counts.items() if count == max_count]
-            return sorted(tied_locations)[0]  # Return alphabetically first of tied
-        else:
+            # Step 3: Get borrower locations
+            locations = []
+            for borrower_id in default_ids:
+                try:
+                    borrower_query = (self.supabase
+                                      .table('borrowers')
+                                      .select('location')
+                                      .eq('id', borrower_id))
+
+                    borrower_query = self.apply_gender_filter(borrower_query, gender)
+                    borrower_response = borrower_query.execute()
+
+                    data = borrower_response.data
+                    if data and data[0].get('location'):
+                        locations.append(data[0]['location'])
+                except Exception as e:
+                    logging.error(f"Error fetching borrower {borrower_id}: {str(e)}")
+                    continue
+
+            # Step 4: Return the most common location (with tie handling)
+            if locations:
+                location_counts = Counter(locations)
+                max_count = max(location_counts.values())
+                tied_locations = [loc for loc, count in location_counts.items() if count == max_count]
+                return sorted(tied_locations)[0]  # Return alphabetically first of tied
+            else:
+                return "No data found"
+        except Exception as e:
+            logging.error(f"Error in get_location_by_status: {str(e)}")
             return "No data found"
 
     def worst_location(self, gender, year, month):
@@ -139,231 +168,317 @@ class CustomerAnalytics:
 
     def average_loan_amount(self, gender, year, month):
         """returns the average loan amount based on the gender, year, month"""
-        # Validate inputs
-        if not isinstance(year, int):
-            try:
-                year = int(year)
-            except (ValueError, TypeError):
-                raise ValueError(f"Year must be a valid integer, got: {year}")
+        try:
+            # Validate inputs
+            if not isinstance(year, int):
+                try:
+                    year = int(year)
+                except (ValueError, TypeError):
+                    raise ValueError(f"Year must be a valid integer, got: {year}")
 
-        start, end = self.month_map(year)[month]
+            start, end = self.month_map(year)[month]
 
-        borrower_query = (
-            self.supabase
-            .table('borrowers')
-            .select('id')
-            .gte("created_at", start)
-            .lte("created_at", end)
-        )
-        query = self.apply_gender_filter(borrower_query, gender)
-        response = query.execute()
+            borrower_query = (
+                self.supabase
+                .table('borrowers')
+                .select('id')
+                .gte("created_at", start)
+                .lte("created_at", end)
+            )
+            query = self.apply_gender_filter(borrower_query, gender)
+            response = query.execute()
 
-        borrower_ids = [item['id'] for item in response.data]
+            if not response.data:
+                return 0.0
 
-        if borrower_ids:
+            borrower_ids = [item['id'] for item in response.data if item.get('id')]
+
+            if not borrower_ids:
+                return 0.0
+
             loan_query = (self.supabase
                           .table("loans")
                           .select("amount")
                           .in_("borrower_id", borrower_ids))
 
             loan_response = loan_query.execute()
-            loan_amounts = [item['amount'] for item in loan_response.data]
-        else:
-            loan_amounts = []
+            if not loan_response.data:
+                return 0.0
 
-        if not loan_amounts:
+            loan_amounts = [item['amount'] for item in loan_response.data
+                            if item.get('amount') is not None and isinstance(item['amount'], (int, float))]
+
+            if not loan_amounts:
+                return 0.0
+
+            average_amount = sum(loan_amounts) / len(loan_amounts)
+            return round(average_amount, 2)
+        except Exception as e:
+            logging.error(f"Error in average_loan_amount: {str(e)}")
             return 0.0
-
-        average_amount = sum(loan_amounts) / len(loan_amounts)
-        return round(average_amount, 2)
 
     def count_loans_by_status(self, location_dict, status, year, month):
         """
         Counts the number of loans per location with a given status (or list of statuses).
         """
-        # Validate inputs
-        if not isinstance(year, int):
-            try:
-                year = int(year)
-            except (ValueError, TypeError):
-                raise ValueError(f"Year must be a valid integer, got: {year}")
+        try:
+            # Validate inputs
+            if not isinstance(year, int):
+                try:
+                    year = int(year)
+                except (ValueError, TypeError):
+                    raise ValueError(f"Year must be a valid integer, got: {year}")
 
-        start, end = self.month_map(year)[month]
-        town_loan_counts = {}
+            if not location_dict:
+                return {}
 
-        for location, borrower_ids in location_dict.items():
-            if borrower_ids:
-                loan_query = (self.supabase
-                              .table("loans")
-                              .select("id")
-                              .in_("borrower_id", borrower_ids)
-                              .gte("created_at", start)
-                              .lte("created_at", end))
+            start, end = self.month_map(year)[month]
+            town_loan_counts = {}
 
-                # Filter by status (supporting both string and list)
-                # Only apply status filtering if it's not '*'
-                if status != "*":
-                    if isinstance(status, list):
-                        status_filter = ",".join([f"status.eq.{s}" for s in status])
-                        loan_query = loan_query.or_(status_filter)
+            for location, borrower_ids in location_dict.items():
+                try:
+                    if borrower_ids:
+                        loan_query = (self.supabase
+                                      .table("loans")
+                                      .select("id")
+                                      .in_("borrower_id", borrower_ids)
+                                      .gte("created_at", start)
+                                      .lte("created_at", end))
+
+                        # Filter by status (supporting both string and list)
+                        # Only apply status filtering if it's not '*'
+                        if status != "*":
+                            if isinstance(status, list):
+                                status_filter = ",".join([f"status.eq.{s}" for s in status])
+                                loan_query = loan_query.or_(status_filter)
+                            else:
+                                loan_query = loan_query.eq("status", status)
+
+                        loan_response = loan_query.execute()
+                        town_loan_counts[location] = len(loan_response.data) if loan_response.data else 0
                     else:
-                        loan_query = loan_query.eq("status", status)
+                        town_loan_counts[location] = 0
+                except Exception as e:
+                    logging.error(f"Error processing location {location}: {str(e)}")
+                    town_loan_counts[location] = 0
 
-                loan_response = loan_query.execute()
-                town_loan_counts[location] = len(loan_response.data)
-            else:
-                town_loan_counts[location] = 0
-
-        return town_loan_counts
+            return town_loan_counts
+        except Exception as e:
+            logging.error(f"Error in count_loans_by_status: {str(e)}")
+            return {}
 
     def total_town_loans(self, gender, year, month):
         """
         Returns a dictionary of total loans given per town for a specific gender, year, and month.
         """
-        # Step 1: Get all borrowers and group them by location
-        borrower_query = (
-            self.supabase
-            .table('borrowers')
-            .select('location', 'id')
-        )
+        try:
+            # Step 1: Get all borrowers and group them by location
+            borrower_query = (
+                self.supabase
+                .table('borrowers')
+                .select('location', 'id')
+            )
 
-        query = self.apply_gender_filter(borrower_query, gender)
-        response = query.execute()
+            query = self.apply_gender_filter(borrower_query, gender)
+            response = query.execute()
 
-        location_dict = defaultdict(list)
-        for item in response.data:
-            location_dict[item['location']].append(item['id'])
-        location_dict = dict(location_dict)
+            if not response.data:
+                return {}
 
-        # Step 2: Use the reusable function to get loan counts (any status = all loans)
-        return self.count_loans_by_status(location_dict, status="*", year=year, month=month)
+            location_dict = defaultdict(list)
+            for item in response.data:
+                if item.get('location') and item.get('id'):
+                    location_dict[item['location']].append(item['id'])
+            location_dict = dict(location_dict)
+
+            if not location_dict:
+                return {}
+
+            # Step 2: Use the reusable function to get loan counts (any status = all loans)
+            return self.count_loans_by_status(location_dict, status="*", year=year, month=month)
+        except Exception as e:
+            logging.error(f"Error in total_town_loans: {str(e)}")
+            return {}
 
     def total_town_completed_repayments(self, gender, year, month):
         """returns a dictionary of total loans that have been fully returned per town for a specific gender,
          year, and month"""
-        # Step 1: Get all borrowers and group them by location
-        borrower_query = (
-            self.supabase
-            .table('borrowers')
-            .select('location', 'id')
-        )
+        try:
+            # Step 1: Get all borrowers and group them by location
+            borrower_query = (
+                self.supabase
+                .table('borrowers')
+                .select('location', 'id')
+            )
 
-        query = self.apply_gender_filter(borrower_query, gender)
-        response = query.execute()
+            query = self.apply_gender_filter(borrower_query, gender)
+            response = query.execute()
 
-        location_dict = defaultdict(list)
-        for item in response.data:
-            location_dict[item['location']].append(item['id'])
-        location_dict = dict(location_dict)
+            if not response.data:
+                return {}
 
-        # Step 2: Use the reusable function to get loan counts (any status = all loans)
-        return self.count_loans_by_status(location_dict, status="Completed", year=year, month=month)
+            location_dict = defaultdict(list)
+            for item in response.data:
+                if item.get('location') and item.get('id'):
+                    location_dict[item['location']].append(item['id'])
+            location_dict = dict(location_dict)
+
+            if not location_dict:
+                return {}
+
+            # Step 2: Use the reusable function to get loan counts (completed status)
+            return self.count_loans_by_status(location_dict, status="Completed", year=year, month=month)
+        except Exception as e:
+            logging.error(f"Error in total_town_completed_repayments: {str(e)}")
+            return {}
 
     def location_performance_ranking(self, gender, year, month):
         """Returns a dictionary with towns ranked by repayment rate (highest first), formatted with %."""
+        try:
+            total_town_loans = self.total_town_loans(gender, year, month)
+            total_town_completed_repayments = self.total_town_completed_repayments(gender, year, month)
 
-        total_town_loans = self.total_town_loans(gender, year, month)
-        total_town_completed_repayments = self.total_town_completed_repayments(gender, year, month)
+            if not total_town_loans:
+                return {}
 
-        performance = {}
+            performance = {}
 
-        for town, total_loans in total_town_loans.items():
-            completed = total_town_completed_repayments.get(town, 0)
+            for town, total_loans in total_town_loans.items():
+                completed = total_town_completed_repayments.get(town, 0)
 
-            if total_loans > 0:
-                repayment_rate = round((completed / total_loans) * 100, 2)
-            else:
-                repayment_rate = 0.00
+                if total_loans > 0:
+                    repayment_rate = round((completed / total_loans) * 100, 2)
+                else:
+                    repayment_rate = 0.00
 
-            performance[town] = repayment_rate
+                performance[town] = repayment_rate
 
-        # Sort by repayment rate descending
-        sorted_performance = dict(
-            sorted(performance.items(), key=lambda x: x[1], reverse=True)
-        )
+            # Sort by repayment rate descending
+            sorted_performance = dict(
+                sorted(performance.items(), key=lambda x: x[1], reverse=True)
+            )
 
-        # Convert values to string with "%"
-        final_output = {town: f"{rate}%" for town, rate in sorted_performance.items()}
+            # Convert values to string with "%"
+            final_output = {town: f"{rate}%" for town, rate in sorted_performance.items()}
 
-        return final_output
+            return final_output
+        except Exception as e:
+            logging.error(f"Error in location_performance_ranking: {str(e)}")
+            return {}
 
     def loans_by_occupation(self, gender, year, month):
         """returns a dictionary of occupations as keys and number of loans given to that occupation as values"""
-        # Step 1: Get all borrowers and group them by location
-        borrower_query = (
-            self.supabase
-            .table('borrowers')
-            .select('occupation', 'id')
-        )
+        try:
+            # Step 1: Get all borrowers and group them by occupation
+            borrower_query = (
+                self.supabase
+                .table('borrowers')
+                .select('occupation', 'id')
+            )
 
-        query = self.apply_gender_filter(borrower_query, gender)
-        response = query.execute()
+            query = self.apply_gender_filter(borrower_query, gender)
+            response = query.execute()
 
-        occupation_dict = defaultdict(list)
-        for item in response.data:
-            occupation_dict[item['occupation']].append(item['id'])
-        location_dict = dict(occupation_dict)
+            if not response.data:
+                return {}
 
-        # Step 2: Use the reusable function to get loan counts (any status = all loans)
-        return self.count_loans_by_status(location_dict, status="*", year=year, month=month)
+            occupation_dict = defaultdict(list)
+            for item in response.data:
+                if item.get('occupation') and item.get('id'):
+                    occupation_dict[item['occupation']].append(item['id'])
+            occupation_dict = dict(occupation_dict)
+
+            if not occupation_dict:
+                return {}
+
+            # Step 2: Use the reusable function to get loan counts (any status = all loans)
+            return self.count_loans_by_status(occupation_dict, status="*", year=year, month=month)
+        except Exception as e:
+            logging.error(f"Error in loans_by_occupation: {str(e)}")
+            return {}
 
     def loans_by_age_group(self, gender, year, month):
         """returns a dictionary of age groups as keys and the total loans given to them as values"""
-        borrower_query = (
-            self.supabase
-            .table('borrowers')
-            .select('birth_date', 'id')
-        )
+        try:
+            borrower_query = (
+                self.supabase
+                .table('borrowers')
+                .select('birth_date', 'id')
+            )
 
-        query = self.apply_gender_filter(borrower_query, gender)
-        response = query.execute()
+            query = self.apply_gender_filter(borrower_query, gender)
+            response = query.execute()
 
-        today = datetime.datetime.today()
-        for item in response.data:
-            try:
-                dob = datetime.datetime.strptime(item['birth_date'], "%Y-%m-%d")
-                age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
-                item['age'] = age
-            except (ValueError, TypeError):
-                # Skip records with invalid birth dates
-                item['age'] = None
+            if not response.data:
+                return {
+                    "18-29": 0,
+                    "30-50": 0,
+                    "50-60": 0,
+                    "above 60": 0
+                }
 
-            if 'birth_date' in item:
-                del item['birth_date']
+            today = datetime.datetime.today()
+            for item in response.data:
+                try:
+                    if item.get('birth_date'):
+                        dob = datetime.datetime.strptime(item['birth_date'], "%Y-%m-%d")
+                        age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+                        item['age'] = age
+                    else:
+                        item['age'] = None
+                except (ValueError, TypeError):
+                    # Skip records with invalid birth dates
+                    item['age'] = None
 
-        age_groups = {
-            "18-29": 0,
-            "30-50": 0,
-            "50-60": 0,
-            "above 60": 0
-        }
+                if 'birth_date' in item:
+                    del item['birth_date']
 
-        for item in response.data:
-            age = item.get('age')
-            if age is not None:
-                if 18 <= age <= 29:
-                    age_groups["18-29"] += 1
-                elif 30 <= age <= 50:
-                    age_groups["30-50"] += 1
-                elif 51 <= age <= 60:
-                    age_groups["50-60"] += 1
-                elif age > 60:
-                    age_groups["above 60"] += 1
+            age_groups = {
+                "18-29": 0,
+                "30-50": 0,
+                "50-60": 0,
+                "above 60": 0
+            }
 
-        return age_groups
+            for item in response.data:
+                age = item.get('age')
+                if age is not None and item.get('id'):
+                    if 18 <= age <= 29:
+                        age_groups["18-29"] += 1
+                    elif 30 <= age <= 50:
+                        age_groups["30-50"] += 1
+                    elif 51 <= age <= 60:
+                        age_groups["50-60"] += 1
+                    elif age > 60:
+                        age_groups["above 60"] += 1
+
+            return age_groups
+        except Exception as e:
+            logging.error(f"Error in loans_by_age_group: {str(e)}")
+            return {
+                "18-29": 0,
+                "30-50": 0,
+                "50-60": 0,
+                "above 60": 0
+            }
 
     def loans_by_location_chart(self, gender, year, month):
         """returns an HTML string of a pie chart for loans by location"""
         try:
-            loan_location_data = self.total_town_loans(gender, year,
-                                                       month)  # dictionary of locations and count of loans
+            loan_location_data = self.total_town_loans(gender, year, month)
 
             # Check if data is empty
-            if not loan_location_data:
-                return "<div>No loan data available for the specified filters.</div>"
+            if not loan_location_data or all(value == 0 for value in loan_location_data.values()):
+                return "<div style='text-align: center; padding: 20px; font-family: Arial, sans-serif;'>No loan data available for the specified filters.</div>"
 
             # Convert dictionary to DataFrame
             df = pd.DataFrame(list(loan_location_data.items()), columns=['Location', 'Loan_Count'])
+
+            # Remove locations with 0 loans
+            df = df[df['Loan_Count'] > 0]
+
+            if df.empty:
+                return "<div style='text-align: center; padding: 20px; font-family: Arial, sans-serif;'>No loan data available for the specified filters.</div>"
 
             # Sort by loan count in descending order
             df = df.sort_values('Loan_Count', ascending=False)
@@ -399,8 +514,6 @@ class CustomerAnalytics:
                     x=1.02
                 ),
                 margin=dict(l=20, r=120, t=60, b=20),
-                #width=500,
-                #height=300
             )
 
             # Convert to HTML string
@@ -408,7 +521,8 @@ class CustomerAnalytics:
 
             return html_string
         except Exception as e:
-            return f"<div>Error generating chart: {str(e)}</div>"
+            logging.error(f"Error in loans_by_location_chart: {str(e)}")
+            return f"<div style='text-align: center; padding: 20px; font-family: Arial, sans-serif; color: red;'>Error generating chart: Unable to create visualization</div>"
 
     def loans_by_occupation_chart(self, gender, year, month):
         """returns an HTML string of a bar chart for loans by occupation"""
@@ -416,11 +530,17 @@ class CustomerAnalytics:
             loans_occupation_data = self.loans_by_occupation(gender, year, month)
 
             # Check if data is empty
-            if not loans_occupation_data:
-                return "<div>No loan data available for the specified filters.</div>"
+            if not loans_occupation_data or all(value == 0 for value in loans_occupation_data.values()):
+                return "<div style='text-align: center; padding: 20px; font-family: Arial, sans-serif;'>No loan data available for the specified filters.</div>"
 
             # Convert dictionary to DataFrame
             df = pd.DataFrame(list(loans_occupation_data.items()), columns=['Occupation', 'Loan_Count'])
+
+            # Remove occupations with 0 loans
+            df = df[df['Loan_Count'] > 0]
+
+            if df.empty:
+                return "<div style='text-align: center; padding: 20px; font-family: Arial, sans-serif;'>No loan data available for the specified filters.</div>"
 
             # Sort by loan count in descending order
             df = df.sort_values('Loan_Count', ascending=False)
@@ -447,8 +567,6 @@ class CustomerAnalytics:
                 yaxis_title='Number of Loans',
                 font=dict(size=10),
                 margin=dict(l=40, r=20, t=60, b=80),
-                #width=500,
-                #height=300,
                 xaxis=dict(
                     tickangle=45,  # Rotate x-axis labels for better readability
                     tickfont=dict(size=9)
@@ -463,7 +581,8 @@ class CustomerAnalytics:
 
             return html_string
         except Exception as e:
-            return f"<div>Error generating chart: {str(e)}</div>"
+            logging.error(f"Error in loans_by_occupation_chart: {str(e)}")
+            return f"<div style='text-align: center; padding: 20px; font-family: Arial, sans-serif; color: red;'>Error generating chart: Unable to create visualization</div>"
 
     def age_group_radial_bar_chart(self, gender, year, month):
         """returns an HTML string of a radial_bar_chart for loans by age group"""
@@ -471,11 +590,17 @@ class CustomerAnalytics:
             age_group_loans_data = self.loans_by_age_group(gender, year, month)
 
             # Check if data is empty
-            if not age_group_loans_data:
-                return "<div>No loan data available for the specified filters.</div>"
+            if not age_group_loans_data or all(value == 0 for value in age_group_loans_data.values()):
+                return "<div style='text-align: center; padding: 20px; font-family: Arial, sans-serif;'>No loan data available for the specified filters.</div>"
 
             # Convert dictionary to DataFrame
             df = pd.DataFrame(list(age_group_loans_data.items()), columns=['Age_Group', 'Loan_Count'])
+
+            # Remove age groups with 0 loans
+            df = df[df['Loan_Count'] > 0]
+
+            if df.empty:
+                return "<div style='text-align: center; padding: 20px; font-family: Arial, sans-serif;'>No loan data available for the specified filters.</div>"
 
             # Sort by age group for logical ordering
             df = df.sort_values('Age_Group')
@@ -507,7 +632,7 @@ class CustomerAnalytics:
                 polar=dict(
                     radialaxis=dict(
                         visible=True,
-                        range=[0, max(df['Loan_Count']) * 1.1],
+                        range=[0, max(df['Loan_Count']) * 1.1] if not df.empty else [0, 1],
                         tickfont=dict(size=9),
                         gridcolor='lightgray',
                         gridwidth=1
@@ -521,8 +646,6 @@ class CustomerAnalytics:
                 ),
                 font=dict(size=10),
                 margin=dict(l=40, r=40, t=60, b=40),
-                #width=500,
-                #height=300,
                 showlegend=False
             )
 
@@ -531,8 +654,5 @@ class CustomerAnalytics:
 
             return html_string
         except Exception as e:
-            return f"<div>Error generating chart: {str(e)}</div>"
-
-
-
-
+            logging.error(f"Error in age_group_radial_bar_chart: {str(e)}")
+            return f"<div style='text-align: center; padding: 20px; font-family: Arial, sans-serif; color: red;'>Error generating chart: Unable to create visualization</div>"

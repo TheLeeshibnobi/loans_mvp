@@ -70,6 +70,7 @@
             <a href="/" class="back-link">← Back to Dashboard</a>
 
             <form action="/search_borrower" method="GET" onsubmit="console.log('Form submitting...', document.getElementById('borrowerSearch').value)">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
                 <label for="borrowerSearch" class="form-label search-label">Search Borrower by NRC</label>
                 <div class="input-wrapper">
                     <input

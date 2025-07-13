@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from overview_metrics import OverviewMetrics
 from dotenv import load_dotenv
 from charts import Charts
@@ -77,11 +77,10 @@ def signup():
     if request.method == 'POST':
         name = request.form["name"]
         email = request.form["email"]
-        role = request.form["role"]
         password = request.form["password"]
         secret_key = request.form["secret_key"]
 
-        response = auth.sign_up(name, email, role, password, secret_key)
+        response = auth.sign_up(name, email, password, secret_key)
 
         # Check if signup was successful
         if response.get("success", False):
@@ -99,6 +98,12 @@ def signup():
 
     # Handle GET request - render the signup page
     return render_template("user_login_signup.html")
+
+@app.route('/unauthorized_access')
+def unauthorized_access():
+
+    return render_template('unauthorized_access.html')
+
 
 @app.route('/overview_dashboard', methods=['GET', 'POST'])
 def overview_dashboard():
@@ -234,6 +239,11 @@ def borrower_information():
 @app.route('/loan_form')
 def loan_form():
     """Display the loan form"""
+    if session.get("user", {}).get("role") != "admin":
+        # Block access
+        flash("Access denied: Admins only.", "error")
+        return render_template('unauthorized_access.html')
+
     borrower_id = request.args.get('borrower_id')
 
     if not borrower_id:
@@ -252,6 +262,11 @@ def loan_form():
 
 @app.route('/register_borrower', methods=['GET', 'POST'])
 def register_borrower():
+    if session.get("user", {}).get("role") != "admin":
+        # Block access
+        flash("Access denied: Admins only.", "error")
+        return render_template('unauthorized_access.html')
+
     if request.method == 'GET':
         return render_template('register_new_borrower.html')
 
@@ -297,6 +312,11 @@ def register_borrower():
 @app.route('/submit-loan', methods=['POST'])
 def submit_loan():
     """Handle loan form submission"""
+    if session.get("user", {}).get("role") != "admin":
+        # Block access
+        flash("Access denied: Admins only.", "error")
+        return render_template('unauthorized_access.html')
+
     try:
         # Get form data - FIX: Get borrower_id from form, not args
         borrower_id = request.form.get('borrower_id')
@@ -564,6 +584,7 @@ def business_analytics():
 
 @app.route('/settings')
 def settings():
+
     return render_template('settings.html')
 
 
@@ -571,6 +592,11 @@ def settings():
 def save_key():
     """Save secret key using form data"""
     print("=== SAVE-KEY FORM ENDPOINT CALLED ===")
+
+    if session.get("user", {}).get("role") != "admin":
+        # Block access
+        flash("Access denied: Admins only.", "error")
+        return render_template('unauthorized_access.html')
 
     try:
         # Get the key from form data
@@ -622,6 +648,11 @@ def save_key():
 
 @app.route('/key-success')
 def key_success():
+    if session.get("user", {}).get("role") != "admin":
+        # Block access
+        flash("Access denied: Admins only.", "error")
+        return render_template('unauthorized_access.html')
+
     return render_template('key_success.html')
 
 
@@ -668,7 +699,12 @@ def capital_management():
             form_type = request.form.get('form_type')
 
             if form_type == 'dividend':
-                # Record dividend payout
+                if session.get("user", {}).get("role") != "admin":
+                    # Block access
+                    flash("Access denied: Admins only.", "error")
+                    return render_template('unauthorized_access.html')
+
+                    # Record dividend payout
                 result = capital_tool.record_given_dividend(
                     amount=amount,
                     status=status,
@@ -683,6 +719,11 @@ def capital_management():
 
             elif form_type == 'capital':
                 # Record capital injection
+                if session.get("user", {}).get("role") != "admin":
+                    # Block access
+                    flash("Access denied: Admins only.", "error")
+                    return render_template('unauthorized_access.html')
+
                 result = capital_tool.record_capital_injection(
                     user_name=user_name,
                     amount=amount,
@@ -707,6 +748,11 @@ def capital_management():
 
 @app.route("/loan_repayment", methods=["GET", "POST"])
 def loan_repayment():
+    if session.get("user", {}).get("role") != "admin":
+        # Block access
+        flash("Access denied: Admins only.", "error")
+        return render_template('unauthorized_access.html')
+
     if request.method == "POST":
         nrc = request.form.get("nrc").strip()
         print(f"Received NRC: {nrc}")
@@ -727,6 +773,12 @@ def loan_repayment():
 
 @app.route("/repayment_form/<string:loan_id>", methods=["GET"])
 def repayment_form(loan_id):
+
+    if session.get("user", {}).get("role") != "admin":
+        # Block access
+        flash("Access denied: Admins only.", "error")
+        return render_template('unauthorized_access.html')
+
     # No conversion needed - use the UUID string directly
     repayment_tool = Repayment()
     loan = repayment_tool.get_loan_by_id(loan_id)
@@ -740,6 +792,12 @@ def repayment_form(loan_id):
 
 @app.route("/process_repayment", methods=["POST"])
 def process_repayment():
+
+    if session.get("user", {}).get("role") != "admin":
+        # Block access
+        flash("Access denied: Admins only.", "error")
+        return render_template('unauthorized_access.html')
+
     loan_id = request.form.get("loan_id")
     amount = request.form.get("amount")
     repayment_date = request.form.get("repayment_date")
@@ -776,9 +834,55 @@ def process_repayment():
         return redirect(url_for('loan_repayment'))
 
 
+@app.route('/capital_transactions', methods = ['POST', 'GET'])
+def capital_transactions():
+    capital_tool = CapitalFunctions()
+
+    transactions = capital_tool.capital_transactions(3)
+    return render_template('capital_transactions.html',
+                           transactions = transactions)
+
+
+@app.route('/download_transactions', methods=['POST', 'GET'])
+def download_transactions():
+    capital_tool = CapitalFunctions()
+
+    # Get form data
+    start_date = request.form.get('start_date') or None
+    end_date = request.form.get('end_date') or None
+    user_name = request.form.get('user_name') or None
+    amount = request.form.get('amount') or None
+
+
+    # Convert amount to float if provided
+    if amount:
+        try:
+            amount = float(amount)
+        except ValueError:
+            amount = None
+
+    # Use your existing function
+    result = capital_tool.download_capital_transactions(start_date, end_date, user_name, amount)
+    print(f"DEBUG - Function result: {result}")
+
+    # Check if the result is a 204 No Content response (no transactions found)
+    if hasattr(result, 'status_code') and result.status_code == 204:
+        flash('No transactions found for the selected date range.', 'warning')
+        return redirect(url_for('capital_transactions'))  # Replace with your actual route name
+
+    # If it's a successful response (CSV download), return it
+    return result
+
+
+
+
+
 @app.route('/ai_agents')
 def ai_agents():
-    return render_template('ai_agents.html')
+
+    return render_template('ai_agents.html',
+
+                           )
 
 
 

@@ -3,6 +3,13 @@ import datetime
 import os
 import logging
 
+from flask import send_file, make_response
+import io
+import tempfile
+import os
+import pandas
+
+
 # Set up logging
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
@@ -328,4 +335,177 @@ class CapitalFunctions:
             logger.error(f"Error while recording capital injection: {e}")
             return None
 
+    def capital_transactions(self, range):
+        """Returns the recent capital transactions with owner names."""
+
+        try:
+            # Step 1: Fetch capital transactions
+            response = (
+                self.supabase
+                .table('capital_transactions')
+                .select('*')
+                .order('created_at', desc=True)
+                .limit(range)
+                .execute()
+            )
+
+            data = response.data if hasattr(response, 'data') else []
+
+            if not data:
+                print("No capital transactions found.")
+                return []
+
+            # Step 2: Replace owner_id with user_name
+            enriched_data = []
+            for transaction in data:
+                owner_id = transaction.get('owner_id')
+
+                owner_response = (
+                    self.supabase
+                    .table('owners')
+                    .select('user_name')
+                    .eq('id', owner_id)
+                    .limit(1)
+                    .execute()
+                )
+
+                # Default to owner_id if no user_name found
+                user_name = (
+                    owner_response.data[0]['user_name']
+                    if owner_response.data
+                    else owner_id
+                )
+
+                transaction['owner_name'] = user_name
+                transaction.pop('owner_id', None)  # Remove owner_id if you only want name
+                enriched_data.append(transaction)
+
+            return enriched_data
+
+        except Exception as e:
+            print(f'Exception while fetching capital transactions: {e}')
+            return []
+
+    def get_transactions(self, start_date=None, end_date=None, user_name=None, amount=None):
+        """Returns capital transactions filtered by any combination of date range, username, and/or amount."""
+
+        try:
+            # Step 1: Start base query
+            query = self.supabase.table('capital_transactions').select('*')
+
+            if start_date:
+                query = query.gte('created_at', start_date)
+            if end_date:
+                query = query.lte('created_at', end_date)
+
+            # Step 2: Execute query
+            response = query.execute()
+            transactions = response.data if hasattr(response, 'data') else []
+
+            if not transactions:
+                print("No transactions found.")
+                return []
+
+            filtered_data = []
+
+            for txn in transactions:
+                owner_id = txn.get('owner_id')
+
+                match_user = True
+                match_amount = True
+
+                # Step 3: Filter by user_name if provided
+                if user_name:
+                    owner_response = (
+                        self.supabase
+                        .table('owners')
+                        .select('user_name')
+                        .eq('id', owner_id)
+                        .limit(1)
+                        .execute()
+                    )
+                    if owner_response.data:
+                        db_user_name = owner_response.data[0]['user_name']
+                        match_user = db_user_name.lower() == user_name.lower()
+                    else:
+                        match_user = False
+
+                # Step 4: Filter by amount if provided
+                if amount is not None:
+                    match_amount = float(txn.get('amount', 0)) == float(amount)
+
+                # Step 5: Append if all matches are satisfied
+                if match_user and match_amount:
+                    if user_name:
+                        txn['owner_name'] = user_name
+                        txn.pop('owner_id', None)
+                    filtered_data.append(txn)
+
+            return filtered_data
+
+        except Exception as e:
+            print(f"Exception while fetching transactions: {e}")
+            return []
+
+    def obtain_csv_data(self, data):
+        """Converts provided data to CSV format."""
+
+        try:
+            data_df = pandas.DataFrame(data)
+
+            if data_df.empty:
+                print("Warning: No data provided to convert.")
+                return None
+
+            data_csv = data_df.to_csv(index=False)  # Correct usage
+            return data_csv
+
+        except Exception as e:
+            print(f"Error while converting data to CSV: {e}")
+            return None
+
+
+    def download_capital_transactions(self, start_date, end_date, user_name=None, amount=None):
+        """Returns a Flask CSV download response of capital transactions."""
+
+        try:
+            # Step 1: Get filtered data
+            data = self.get_transactions(start_date, end_date, user_name, amount)
+
+            if not data:
+                return make_response("No data available for the given filters.", 204)
+
+            # Step 2: Convert to CSV using pandas
+            csv_output = self.obtain_csv_data(data)
+
+            # Step 3: Create a BytesIO object for the CSV
+            csv_buffer = io.BytesIO()
+            csv_buffer.write(csv_output.encode('utf-8'))
+            csv_buffer.seek(0)
+
+            # Step 4: Generate filename
+            filename = f"capital_transactions_{start_date}_to_{end_date}.csv"
+
+            # Step 5: Return file using send_file
+            return send_file(
+                csv_buffer,
+                mimetype='text/csv',
+                as_attachment=True,
+                download_name=filename  # Use download_name instead of attachment_filename for newer Flask versions
+            )
+
+        except Exception as e:
+            print(f"ERROR in download_capital_transactions: {e}")
+            return make_response(f"Error generating CSV: {e}", 500)
+
 # Test the module (commented out for production)
+test = CapitalFunctions()
+
+print(
+    test.get_transactions(
+
+        start_date='2025-07-12',
+        end_date='2025-07-19'
+    )
+)
+

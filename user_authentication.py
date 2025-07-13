@@ -20,7 +20,7 @@ class UserAuthentication:
     def verify_password(self, password: str, hashed: str) -> bool:
         return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
-    def sign_up(self, name, email, role, password, secret_key):
+    def sign_up(self, name, email, password, secret_key):
         try:
             # Check if email already exists
             existing = self.supabase.table("users").select("email").eq("email", email).execute()
@@ -43,7 +43,7 @@ class UserAuthentication:
             data = {
                 "name": name.strip(),
                 "email": email.strip().lower(),
-                "role": role.strip().lower(),
+                "role": 'viewer',
                 "password": hashed_password
             }
 
@@ -64,20 +64,20 @@ class UserAuthentication:
         try:
             result = self.supabase.table("users").select("*").eq("email", email).execute()
 
-            # Handle empty table or no matching user
             if not result.data or len(result.data) == 0:
                 return {"success": False, "message": "User not found."}
 
-            user = result.data[0]  # Safe to access now
+            user = result.data[0]
 
             if self.verify_password(password, user["password"]):
+                # Store user in session here
                 session["user"] = {
                     "id": user["id"],
                     "name": user["name"],
                     "email": user["email"],
                     "role": user["role"]
                 }
-                return {"success": True, "message": "Login successful."}
+                return {"success": True, "message": "Login successful", "role": user["role"]}
             else:
                 return {"success": False, "message": "Invalid password."}
 

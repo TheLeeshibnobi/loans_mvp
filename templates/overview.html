@@ -134,8 +134,9 @@
     <!-- Recent Borrowers -->
     <div class="col-md-6 mb-4">
       <div class="card shadow-sm h-100">
-        <div class="card-header bg-light">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
           <h5 class="mb-0 text-dark fw-bold">👥 Recent Borrowers</h5>
+          <a href="{{ url_for('loans_data') }}" class="text-decoration-none text-primary fw-semibold small">View more</a>
         </div>
         <div class="card-body p-0">
           <div class="table-responsive">

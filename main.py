@@ -186,6 +186,30 @@ def overview_dashboard():
                          weekly_loans_due=weekly_loans_due)
 
 
+@app.route('/loans_data', methods=['POST', 'GET'])
+def loans_data():
+    loans_tool = Loans()
+    overview_tool = OverviewMetrics()
+
+    from_date = request.args.get('start_date')
+    to_date = request.args.get('end_date')
+    loan_type = request.args.get('loan_type')
+
+    # Since form method is GET, get search query from request.args
+    search_query = request.args.get('query')
+
+    if from_date or to_date or loan_type:
+        loans = loans_tool.filtered_loans(from_date, to_date, loan_type)
+    elif search_query:
+        loans = loans_tool.search_by_id(search_query)
+    else:
+        loans = overview_tool.recent_borrowers()
+
+    return render_template('loans_data.html', loans=loans)
+
+
+
+
 @app.route('/search_borrower', methods=['GET', 'POST'])
 def search_borrower():
     # Check if this is a search request (has nrc_search parameter)

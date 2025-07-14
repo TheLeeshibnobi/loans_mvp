@@ -1,5 +1,5 @@
-make the search on the capital transactions work. it should alster what
 
+work on the export csv on the loans_data web page
 
 
 

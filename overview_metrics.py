@@ -349,12 +349,12 @@ class OverviewMetrics:
             return 0
 
     def recent_borrowers(self):
-        """Returns a dictionary of 4 recent borrowers"""
+        """Returns a dictionary of 4 recent borrowers including NRC number, issue date, and due date"""
         try:
             response = (
                 self.supabase
                 .table('loans')
-                .select('borrower_id', 'amount', 'status', 'file_url', 'collateral_photos')
+                .select('id', 'borrower_id', 'amount', 'status', 'created_at', 'due_date')
                 .order('id', desc=True)
                 .limit(4)
                 .execute()
@@ -364,27 +364,49 @@ class OverviewMetrics:
                 return []
 
             recent_borrowers = []
-            for data in response.data:
+            for loan in response.data:
                 try:
+                    # Step 1: Get borrower name and NRC number
                     borrower_info = (
                         self.supabase
                         .table('borrowers')
-                        .select('name')
-                        .eq('id', data['borrower_id'])
+                        .select('name', 'nrc_number')
+                        .eq('id', loan['borrower_id'])
                         .execute()
                     ).data
 
-                    borrower_name = borrower_info[0]['name'] if borrower_info and len(borrower_info) > 0 else "Unknown"
+                    if borrower_info:
+                        borrower_name = borrower_info[0]['name']
+                        nrc_number = borrower_info[0]['nrc_number']
+                    else:
+                        borrower_name = "Unknown"
+                        nrc_number = "N/A"
 
-                    # Ensure collateral_photos is a list, default to empty list if None or invalid
-                    collateral_photos = data.get('collateral_photos', []) if isinstance(data.get('collateral_photos'),
-                                                                                        list) else []
+                    # Step 2: Get files for the loan
+                    file_info = (
+                        self.supabase
+                        .table('files')
+                        .select('docs', 'photos')
+                        .eq('loan_id', loan['id'])
+                        .limit(1)
+                        .execute()
+                    ).data
+                    file_data = file_info[0] if file_info else {}
+
+                    # FIX: Extract the first contract URL from the docs array
+                    docs_array = file_data.get('docs', [])
+                    contract = docs_array[0] if docs_array and len(docs_array) > 0 else None
+
+                    collateral_photos = file_data.get('photos', []) if isinstance(file_data.get('photos'), list) else []
 
                     recent_borrowers.append({
                         'name': borrower_name,
-                        'amount': f"ZMK {data['amount']:,.2f}",  # Format amount here
-                        'status': data['status'],
-                        'contract': data['file_url'],
+                        'nrc_number': nrc_number,
+                        'amount': f"ZMK {loan['amount']:,.2f}",
+                        'status': loan['status'],
+                        'issue_date': loan['created_at'],
+                        'due_date': loan['due_date'],
+                        'contract': contract,
                         'collateral_photos': collateral_photos
                     })
                 except Exception as e:

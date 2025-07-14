@@ -495,3 +495,244 @@ class Loans:
                 'total_borrowers': 0,
                 'error': error_msg
             }
+
+    def filtered_loans(self, from_date=None, to_date=None, loan_type='All Loans'):
+        """Returns loan information according to the filters"""
+        try:
+            # Build the base query
+            query = (
+                self.supabase
+                .table('loans')
+                .select('id', 'borrower_id', 'amount', 'status', 'created_at', 'due_date')
+            )
+
+            # Apply date filters if provided
+            if from_date:
+                query = query.gte('created_at', from_date)
+            if to_date:
+                query = query.lte('created_at', to_date)
+
+            # Apply loan type filter using the status column directly
+            if loan_type.lower() in ['overdue loans', 'overdue']:
+                query = query.eq('status', 'Overdue')
+                print(f"DEBUG: Filtering for Overdue loans")
+            elif loan_type.lower() in ['active loans', 'active']:
+                query = query.eq('status', 'Active')
+                print(f"DEBUG: Filtering for Active loans")
+            else:
+                print(f"DEBUG: No status filter applied, loan_type = {loan_type}")
+
+            # Execute the query with ordering
+            response = query.order('id', desc=True).execute()
+            print(f"DEBUG: Query returned {len(response.data) if response.data else 0} loans")
+
+            if not response.data or len(response.data) == 0:
+                return []
+
+            filtered_loans = []
+            for loan in response.data:
+                try:
+                    # Step 1: Get borrower name and NRC number
+                    borrower_info = (
+                        self.supabase
+                        .table('borrowers')
+                        .select('name', 'nrc_number')
+                        .eq('id', loan['borrower_id'])
+                        .execute()
+                    ).data
+
+                    if borrower_info:
+                        borrower_name = borrower_info[0]['name']
+                        nrc_number = borrower_info[0]['nrc_number']
+                    else:
+                        borrower_name = "Unknown"
+                        nrc_number = "N/A"
+
+                    # Step 2: Get files for the loan
+                    file_info = (
+                        self.supabase
+                        .table('files')
+                        .select('docs', 'photos')
+                        .eq('loan_id', loan['id'])
+                        .limit(1)
+                        .execute()
+                    ).data
+                    file_data = file_info[0] if file_info else {}
+
+                    # Extract the first contract URL from the docs array
+                    docs_array = file_data.get('docs', [])
+                    contract = docs_array[0] if docs_array and len(docs_array) > 0 else None
+
+                    collateral_photos = file_data.get('photos', []) if isinstance(file_data.get('photos'), list) else []
+
+                    filtered_loans.append({
+                        'name': borrower_name,
+                        'nrc_number': nrc_number,
+                        'amount': f"ZMK {loan['amount']:,.2f}",
+                        'status': loan['status'],  # Use the actual status from the database
+                        'issue_date': loan['created_at'],
+                        'due_date': loan['due_date'],
+                        'contract': contract,
+                        'collateral_photos': collateral_photos
+                    })
+                except Exception as e:
+                    print(f"Error processing loan data: {e}")
+                    continue
+
+            return filtered_loans
+        except Exception as e:
+            print(f"Error getting filtered loans: {e}")
+            return []
+
+    def search_by_id(self, search_query):
+        """Search loans by borrower name (title case) or NRC number"""
+        try:
+            if not search_query or search_query.strip() == "":
+                return []
+
+            search_query = search_query.strip()
+            print(f"🔍 Searching for: '{search_query}'")
+
+            # Search by name (case-insensitive partial match)
+            name_results = (
+                self.supabase
+                .table('borrowers')
+                .select('id', 'name', 'nrc_number')
+                .filter('name', 'ilike', f'%{search_query}%')  # Use filter() with ilike and wildcards
+                .execute()
+            )
+            print(f"👤 Name results: {name_results.data}")
+
+            # Search by NRC number (case-insensitive partial match)
+            nrc_results = (
+                self.supabase
+                .table('borrowers')
+                .select('id', 'name', 'nrc_number')
+                .filter('nrc_number', 'ilike', f'%{search_query}%')  # Same here
+                .execute()
+            )
+            print(f"🆔 NRC results: {nrc_results.data}")
+
+            # Combine results and remove duplicates
+            all_borrowers = []
+            seen_ids = set()
+
+            for result_set in [name_results.data, nrc_results.data]:
+                for borrower in result_set:
+                    if borrower['id'] not in seen_ids:
+                        all_borrowers.append(borrower)
+                        seen_ids.add(borrower['id'])
+
+            print(f"👥 All borrowers found: {all_borrowers}")
+
+            if not all_borrowers:
+                print("❌ No borrowers found!")
+                return []
+
+            # Get borrower IDs for loan lookup
+            borrower_ids = [borrower['id'] for borrower in all_borrowers]
+            print(f"🔢 Borrower IDs: {borrower_ids}")
+
+            # Get all loans for these borrowers
+            loans_response = (
+                self.supabase
+                .table('loans')
+                .select('id', 'borrower_id', 'amount', 'status', 'created_at', 'due_date')
+                .in_('borrower_id', borrower_ids)
+                .order('id', desc=True)
+                .execute()
+            )
+
+            print(f"💰 Loans response: {loans_response.data}")
+
+            if not loans_response.data:
+                print("❌ No loans found for these borrowers!")
+                return []
+
+            # Create a mapping of borrower_id to borrower info for quick lookup
+            borrower_map = {borrower['id']: borrower for borrower in all_borrowers}
+            print(f"🗺️ Borrower map: {borrower_map}")
+
+            search_results = []
+            for loan in loans_response.data:
+                try:
+                    print(f"🔄 Processing loan: {loan}")
+
+                    # Get borrower info from our mapping
+                    borrower_info = borrower_map.get(loan['borrower_id'])
+
+                    if borrower_info:
+                        borrower_name = borrower_info['name']
+                        nrc_number = borrower_info['nrc_number']
+                    else:
+                        borrower_name = "Unknown"
+                        nrc_number = "N/A"
+
+                    print(f"👤 Borrower info: {borrower_name}, {nrc_number}")
+
+                    # Get files for the loan
+                    file_info = (
+                        self.supabase
+                        .table('files')
+                        .select('docs', 'photos')
+                        .eq('loan_id', loan['id'])
+                        .limit(1)
+                        .execute()
+                    ).data
+
+                    print(f"📁 File info: {file_info}")
+
+                    file_data = file_info[0] if file_info else {}
+
+                    # Extract the first contract URL from the docs array
+                    docs_array = file_data.get('docs', [])
+                    contract = docs_array[0] if docs_array and len(docs_array) > 0 else None
+
+                    collateral_photos = file_data.get('photos', []) if isinstance(file_data.get('photos'), list) else []
+
+                    # Determine loan status based on due date
+                    from datetime import datetime
+                    current_date = datetime.now()
+                    due_date = datetime.fromisoformat(loan['due_date'].replace('Z', '+00:00')) if loan[
+                        'due_date'] else None
+
+                    if due_date and due_date < current_date:
+                        computed_status = 'Overdue'
+                    else:
+                        computed_status = 'Active'
+
+                    result_item = {
+                        'name': borrower_name,
+                        'nrc_number': nrc_number,
+                        'amount': f"ZMK {loan['amount']:,.2f}",
+                        'status': loan['status'],
+                        'computed_status': computed_status,
+                        'issue_date': loan['created_at'],
+                        'due_date': loan['due_date'],
+                        'contract': contract,
+                        'collateral_photos': collateral_photos
+                    }
+
+                    print(f"✅ Added result: {result_item}")
+                    search_results.append(result_item)
+
+                except Exception as e:
+                    print(f"❌ Error processing search result: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    continue
+
+            print(f"📊 Final search results: {search_results}")
+            return search_results
+
+        except Exception as e:
+            print(f"❌ Error searching loans: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+
+
+
+
+test = Loans()
+print(test.filtered_loans(loan_type = 'Overdue Loans'))

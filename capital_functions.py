@@ -498,14 +498,5 @@ class CapitalFunctions:
             print(f"ERROR in download_capital_transactions: {e}")
             return make_response(f"Error generating CSV: {e}", 500)
 
-# Test the module (commented out for production)
-test = CapitalFunctions()
 
-print(
-    test.get_transactions(
-
-        start_date='2025-07-12',
-        end_date='2025-07-19'
-    )
-)
 

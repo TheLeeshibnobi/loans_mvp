@@ -5,6 +5,9 @@ import os
 import json
 import logging
 from typing import Optional, List, Dict, Any, Union
+import pandas as pd
+import io
+from flask import send_file, make_response
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -731,8 +734,47 @@ class Loans:
             traceback.print_exc()
             return []
 
+    def create_csv_loans(self, start_date, end_date):
+        """Exports the loans as a CSV string."""
+        try:
+            loans_response = (
+                self.supabase
+                .table('loans')
+                .select('*')
+                .gte('created_at', start_date)
+                .lte('created_at', end_date)
+                .execute()
+            )
 
+            loans_df = pd.DataFrame(loans_response.data)
+            loans_csv = loans_df.to_csv(index=False)
+            return loans_csv
 
+        except Exception as e:
+            print(f'Exception: {e}')
+            return None
 
-test = Loans()
-print(test.filtered_loans(loan_type = 'Overdue Loans'))
+    def download_csv(self, start_date, end_date):
+        """Returns a Flask CSV download response of capital transactions."""
+
+        try:
+            csv_file = self.create_csv_loans(start_date, end_date)
+            if not csv_file:
+                raise ValueError("No CSV file was generated.")
+
+            csv_buffer = io.BytesIO()
+            csv_buffer.write(csv_file.encode('utf-8'))
+            csv_buffer.seek(0)
+
+            filename = f"capital_transactions_{start_date}_to_{end_date}.csv"
+
+            return send_file(
+                csv_buffer,
+                mimetype='text/csv',
+                as_attachment=True,
+                download_name=filename
+            )
+        except Exception as e:
+            print(f"ERROR in download_capital_transactions: {e}")
+            return make_response(f"Error generating CSV: {e}", 500)
+

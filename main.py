@@ -207,6 +207,18 @@ def loans_data():
 
     return render_template('loans_data.html', loans=loans)
 
+@app.route('/download_loans_csv', methods=['POST', 'GET'])
+def download_loans_csv():
+    loans_tool = Loans()
+    start_date = request.form.get('download_start_date')
+    end_date = request.form.get('download_end_date')
+
+    try:
+        return loans_tool.download_csv(start_date, end_date)
+    except Exception as e:
+        print(f'Exception: {e}')
+        flash(f'Error: {e}')
+        return redirect(request.referrer)
 
 
 

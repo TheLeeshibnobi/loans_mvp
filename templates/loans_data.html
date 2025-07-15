@@ -627,7 +627,8 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form action="/download_loans" method="POST">
+                    <form action="/download_loans_csv" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
                         <div class="modal-form">
                             <div class="form-group">
                                 <label for="download_start_date" class="form-label">From Date</label>

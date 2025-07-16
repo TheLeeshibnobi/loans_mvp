@@ -8,6 +8,7 @@ import io
 import tempfile
 import os
 import pandas
+from datetime import datetime
 
 
 # Set up logging
@@ -498,5 +499,90 @@ class CapitalFunctions:
             print(f"ERROR in download_capital_transactions: {e}")
             return make_response(f"Error generating CSV: {e}", 500)
 
+    def total_injections(self, owner_id):
+        """Gets the total capital injection for an owner"""
+        try:
+            injection_response = (
+                self.supabase
+                .table('injections')
+                .select('amount')
+                .eq('owner_id', owner_id)
+                .execute()
+            )
+
+            total_injection = sum(float(row['amount']) for row in injection_response.data)
+            return total_injection
+
+        except Exception as e:
+            print(f'Exception in total_injections: {e}')
+            return 0.0
+
+    def total_dividends(self, owner_id):
+        """Gets the total capital injection for an owner"""
+        try:
+            injection_response = (
+                self.supabase
+                .table('disbursements')
+                .select('amount')
+                .eq('owner_id', owner_id)
+                .execute()
+            )
+
+            total_injection = sum(float(row['amount']) for row in injection_response.data)
+            return total_injection
+
+        except Exception as e:
+            print(f'Exception in total_injections: {e}')
+            return 0.0
+
+    def get_owners(self):
+        """Returns a list of owners and their info, plus total capital injection and dividend payout."""
+
+        try:
+            owners_response = (
+                self.supabase
+                .table('owners')
+                .select('*')
+                .execute()
+            )
+
+            owners = owners_response.data
+
+            for owner in owners:
+                owner['total_invested'] = self.total_injections(owner['id'])
+
+                owner['total_dividends'] = self.total_dividends(owner['id'])
+
+                try:
+                    dt = datetime.fromisoformat(
+                        owner['created_at'].replace('Z', '+00:00'))  # Handle Zulu time if it exists
+                    owner['created_at'] = dt.strftime('%Y-%m-%d')
+                except Exception as e:
+                    print(f"Error formatting date for owner {owner['id']}: {e}")
+                    owner['created_at'] = owner['created_at']  # Keep original if conversion fails
+
+            return owners
+
+        except Exception as e:
+            print(f'Exception in get_owners: {e}')
+            return []
+
+    def add_owner(self, user_name, email, phone, nrc):
+        """Adds a new owner to the owners table."""
+
+        data = {
+            'user_name': user_name,
+            'email': email,
+            'phone': phone,
+            'nrc_number': nrc
+        }
+
+        try:
+            response = self.supabase.table('owners').insert(data).execute()
+            print(f'Inserted owner: {response.data}')
+            return response.data
+        except Exception as e:
+            print(f'Exception in add_owner: {e}')
+            return None
 
 

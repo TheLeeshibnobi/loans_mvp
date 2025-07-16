@@ -878,6 +878,39 @@ def capital_transactions():
     return render_template('capital_transactions.html',
                            transactions = transactions)
 
+@app.route('/manage_owners', methods = ['POST','GET'])
+def manage_owners():
+    if session.get("user", {}).get("role") != "admin":
+        # Block access
+        flash("Access denied: Admins only.", "error")
+        return render_template('unauthorized_access.html')
+
+    capital_tool = CapitalFunctions()
+
+    owners = capital_tool.get_owners()
+
+    return render_template('manage_owners.html', owners = owners)
+
+@app.route('/add_owner', methods = ['POST','GET'])
+def add_owner():
+    if session.get("user", {}).get("role") != "admin":
+        # Block access
+        flash("Access denied: Admins only.", "error")
+        return render_template('unauthorized_access.html')
+
+    user_name = request.form.get('user_name')
+    email = request.form.get('email')
+    phone = request.form.get('phone')
+    nrc = request.form.get('nrc_number')
+
+    # add owner
+    capital_tool = CapitalFunctions()
+    response = capital_tool.add_owner(user_name, email, phone, nrc)
+
+    owners = capital_tool.get_owners()
+
+    return render_template('manage_owners.html', owners=owners)
+
 
 @app.route('/download_transactions', methods=['POST', 'GET'])
 def download_transactions():

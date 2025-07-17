@@ -7,6 +7,7 @@
     <title>InXource Header</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -241,5 +242,19 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register("{{ url_for('static', filename='service-worker.js') }}")
+            .then(function (registration) {
+              console.log("✅ ServiceWorker registered:", registration.scope);
+            })
+            .catch(function (error) {
+              console.log("❌ ServiceWorker registration failed:", error);
+            });
+        });
+      }
+    </script>
+
 </body>
 </html>

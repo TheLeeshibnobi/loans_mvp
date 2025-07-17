@@ -531,3 +531,21 @@ class BorrowerInformation:
         except Exception as e:
             logger.error(f"Error in recent_borrower_history: {e}")
             return []
+
+    def get_borrowers(self):
+        """Returns a list of borrowers from the database."""
+
+        try:
+            response = (
+                self.supabase
+                .table('borrowers')
+                .select('*')
+                .execute()
+            )
+
+            borrowers = response.data if response.data else []
+            return borrowers
+
+        except Exception as e:
+            print(f'Exception: {e}')
+            return []

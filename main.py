@@ -272,6 +272,13 @@ def borrower_information():
         recent_borrower_history=recent_borrower_history
     )
 
+@app.route('/borrower_data', methods = ['POST','GET'])
+def borrower_data():
+    borrower_tool = BorrowerInformation()
+    borrowers = borrower_tool.get_borrowers()
+
+    return render_template('borrowers_data.html', borrowers = borrowers)
+
 @app.route('/loan_form')
 def loan_form():
     """Display the loan form"""
@@ -809,21 +816,18 @@ def loan_repayment():
 
 @app.route("/repayment_form/<string:loan_id>", methods=["GET"])
 def repayment_form(loan_id):
-
     if session.get("user", {}).get("role") != "admin":
-        # Block access
         flash("Access denied: Admins only.", "error")
         return render_template('unauthorized_access.html')
 
-    # No conversion needed - use the UUID string directly
     repayment_tool = Repayment()
-    loan = repayment_tool.get_loan_by_id(loan_id)
+    loans = repayment_tool.get_loan_by_id(loan_id)
 
-    if not loan:
+    if not loans:
         flash("Loan not found", "error")
         return redirect(url_for("loan_repayment"))
 
-    return render_template("repayment_form.html", loan=loan[0] if loan else None)
+    return render_template("repayment_form.html", loan=loans[0])
 
 
 @app.route("/process_repayment", methods=["POST"])
@@ -948,13 +952,10 @@ def download_transactions():
 
 @app.route('/ai_agents')
 def ai_agents():
-
-    return render_template('ai_agents.html',
-
-                           )
+    return render_template('ai_agents.html')
 
 
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()

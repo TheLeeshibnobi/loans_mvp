@@ -47,6 +47,76 @@
             margin-bottom: 2rem;
         }
 
+        /* Navigation emoji styles */
+        .nav-emoji {
+            font-size: 1.5rem;
+            transition: transform 0.2s ease;
+        }
+
+        .nav-emoji:hover {
+            transform: scale(1.2);
+        }
+
+        /* Desktop spacing for emojis */
+        @media (min-width: 769px) {
+            .navbar-nav .nav-item {
+                margin: 0 1.5rem;
+            }
+        }
+
+        /* Tooltip styles */
+        .nav-tooltip {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .nav-tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .nav-tooltip::before {
+            content: '';
+            position: absolute;
+            bottom: 92%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: rgba(0, 0, 0, 0.9);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .nav-tooltip:hover::after,
+        .nav-tooltip:hover::before {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Show text on mobile, emoji on desktop */
+        .nav-text {
+            display: none;
+        }
+
+        .nav-emoji {
+            display: inline;
+        }
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .main-wrapper {
@@ -56,6 +126,21 @@
             .content-container {
                 padding: 20px;
                 border-radius: 15px;
+            }
+
+            /* Show text on mobile, hide emoji */
+            .nav-text {
+                display: inline;
+            }
+
+            .nav-emoji {
+                display: none;
+            }
+
+            /* Disable tooltips on mobile */
+            .nav-tooltip::after,
+            .nav-tooltip::before {
+                display: none;
             }
         }
     </style>
@@ -87,26 +172,58 @@
                                 <div class="collapse navbar-collapse" id="navbarNav">
                                     <ul class="navbar-nav mx-auto">
                                         <li class="nav-item">
-                                            <a class="nav-link active fw-semibold" aria-current="page" href="{{ url_for('overview_dashboard') }}">📊 Overview</a>                                        </li>
+                                            <a class="nav-link active fw-semibold nav-tooltip" aria-current="page" href="{{ url_for('overview_dashboard') }}" data-tooltip="Overview">
+                                                <span class="nav-emoji">📊</span>
+                                                <span class="nav-text">📊 Overview</span>
+                                            </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link fw-semibold" href="{{ url_for('loan_repayment') }}">💰 Record Repayment</a>
+                                            <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('loan_repayment') }}" data-tooltip="Record Repayment">
+                                                <span class="nav-emoji">💰</span>
+                                                <span class="nav-text">💰 Record Repayment</span>
+                                            </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link fw-semibold" href="{{ url_for('search_borrower') }}">📝 Submit Loan</a>
+                                            <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('search_borrower') }}" data-tooltip="Submit Loan">
+                                                <span class="nav-emoji">📝</span>
+                                                <span class="nav-text">📝 Submit Loan</span>
+                                            </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link fw-semibold" href="{{ url_for('customer_analytics_dashboard') }}">👥 Customer Analytics</a>
+                                            <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('customer_analytics_dashboard') }}" data-tooltip="Customer Analytics">
+                                                <span class="nav-emoji">👥</span>
+                                                <span class="nav-text">👥 Customer Analytics</span>
+                                            </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link fw-semibold" href="{{ url_for('business_analytics') }}">📈 Business Analytics</a>
+                                            <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('business_analytics') }}" data-tooltip="Business Analytics">
+                                                <span class="nav-emoji">📈</span>
+                                                <span class="nav-text">📈 Business Analytics</span>
+                                            </a>
                                         </li>
-
                                         <li class="nav-item">
-                                            <a class="nav-link fw-semibold" href="{{ url_for('ai_agents') }}">👨‍💼 Agents</a>
+                                            <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('loans_data') }}" data-tooltip="View Loans">
+                                                <span class="nav-emoji">📋</span>
+                                                <span class="nav-text">📋 View Loans</span>
+                                            </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link fw-semibold" href="{{ url_for('settings') }}">⚙️ Settings</a>
+                                            <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('borrower_data') }}" data-tooltip="View Borrowers">
+                                                <span class="nav-emoji">👤</span>
+                                                <span class="nav-text">👤 View Borrowers</span>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('ai_agents') }}" data-tooltip="Agents">
+                                                <span class="nav-emoji">👨‍💼</span>
+                                                <span class="nav-text">👨‍💼 Agents</span>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('settings') }}" data-tooltip="Settings">
+                                                <span class="nav-emoji">⚙️</span>
+                                                <span class="nav-text">⚙️ Settings</span>
+                                            </a>
                                         </li>
                                     </ul>
                                 </div>

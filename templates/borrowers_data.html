@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+    .borrower-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .borrower-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+    }
+    .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+    .container {
+        max-width: 1200px;
+    }
+    .search-container {
+        max-width: 600px;
+        margin-bottom: 2rem;
+    }
+</style>
+
+<div class="container py-5">
+    <h1 class="text-center mb-4">Borrowers Information</h1>
+
+    <div class="search-container mx-auto mb-4">
+        <div class="input-group">
+            <input type="text" class="form-control" id="searchInput" placeholder="Search by Name or NRC">
+            <button class="btn btn-primary" type="button" id="searchButton">Search</button>
+        </div>
+    </div>
+
+    <!-- 🔽 Number of Borrowers -->
+    <div class="text-center mb-4">
+        <p class="fw-semibold fs-5">
+            Total Borrowers: {{ borrowers|length }}
+        </p>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="borrowerList">
+        {% for borrower in borrowers %}
+        <div class="col borrower-item" data-id="{{ borrower.id }}" data-name="{{ borrower.name|lower }}" data-nrc="{{ borrower.nrc_number|lower }}">
+            <a href="{{ url_for('borrower_information', borrower_id=borrower.id) }}" class="text-decoration-none">
+
+                <div class="card borrower-card">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ borrower.name }}</h5>
+                        <p class="card-text">NRC: {{ borrower.nrc_number }}</p>
+                        <input type="hidden" value="{{ borrower.id }}">
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+
+<script>
+    // JavaScript for hover animation and search functionality
+    document.addEventListener('DOMContentLoaded', () => {
+        // Hover animation
+        const cards = document.querySelectorAll('.borrower-card');
+        cards.forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.backgroundColor = '#e9ecef';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.backgroundColor = 'white';
+            });
+        });
+
+        // Search functionality
+        const searchInput = document.getElementById('searchInput');
+        const searchButton = document.getElementById('searchButton');
+        const borrowerItems = document.querySelectorAll('.borrower-item');
+
+        const filterBorrowers = () => {
+            const query = searchInput.value.trim().toLowerCase();
+            borrowerItems.forEach(item => {
+                const name = item.getAttribute('data-name');
+                const nrc = item.getAttribute('data-nrc');
+                if (name.includes(query) || nrc.includes(query) || query === '') {
+                    item.style.display = 'block';
+                    // Animation for showing items
+                    item.style.opacity = '0';
+                    item.style.transition = 'opacity 0.3s ease';
+                    setTimeout(() => {
+                        item.style.opacity = '1';
+                    }, 50);
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        };
+
+        searchButton.addEventListener('click', filterBorrowers);
+        searchInput.addEventListener('input', filterBorrowers);
+    });
+</script>
+{% endblock %}

@@ -179,6 +179,7 @@ class OverviewMetrics:
                 .select('amount, interest_rate')
                 .gte('created_at', period)
                 .lte('created_at', today)
+                .eq('status', 'Active')
                 .execute()
             )
 
@@ -608,3 +609,5 @@ class OverviewMetrics:
         except Exception as e:
             print(f"Error getting weekly loans due: {e}")
             return []
+
+test = OverviewMetrics()

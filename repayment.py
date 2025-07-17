@@ -308,7 +308,7 @@ class Repayment:
                 logger.warning(f"No loan found with ID: {loan_id}")
                 return None
 
-            loan_data = response.data[0]
+            loan_data = response.data
             logger.info(f"Loan data found for ID {loan_id}")
             return loan_data
 
@@ -502,3 +502,4 @@ class Repayment:
             validation_result['errors'].append("Invalid repayment date format. Expected ISO format (YYYY-MM-DD)")
 
         return validation_result
+

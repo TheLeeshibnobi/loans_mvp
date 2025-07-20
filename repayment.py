@@ -255,25 +255,18 @@ class Repayment:
                 return False
 
             # 3. Update loan with new amount and status
-            logger.info(f"Updating loan {loan_id} with new amount and status")
+            # 3. Optionally update loan status, but DO NOT update the amount
+            logger.info(f"Updating loan {loan_id} status to {status}")
             update_response = (
                 self.supabase
                 .table("loans")
                 .update({
-                    "amount": updated_amount,
-                    "status": status
+                    "status": status  # Only update status
                 })
                 .eq("id", loan_id)
                 .execute()
             )
 
-            # Check if update was successful
-            if hasattr(update_response, 'data') and update_response.data:
-                logger.info("Loan status and amount updated successfully")
-                return True
-            else:
-                logger.error("Loan update failed - no data returned")
-                return False
 
         except Exception as e:
             logger.error(f"Error processing repayment for loan {loan_id}: {str(e)}")

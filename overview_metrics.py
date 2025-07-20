@@ -71,10 +71,30 @@ class OverviewMetrics:
             print(f"Error calculating net loans: {e}")
             return 0
 
+    def total_money_in(self):
+        """Returns the total of capital in plus loan repayment amount."""
+        repayments_response = self.supabase.table('repayments').select('amount').execute()
+        injections_response = self.supabase.table('injections').select('amount').execute()
+
+        repayments_total = sum(item['amount'] for item in repayments_response.data)
+        injections_total = sum(item['amount'] for item in injections_response.data)
+
+        return repayments_total + injections_total
+
+    def total_money_out(self):
+        """Returns the total of money disbursed and loans given out."""
+        disbursements_response = self.supabase.table('disbursements').select('amount').execute()
+        loans_response = self.supabase.table('loans').select('amount').execute()
+
+        disbursements_total = sum(item['amount'] for item in disbursements_response.data)
+        loans_total = sum(item['amount'] for item in loans_response.data)
+
+        return disbursements_total + loans_total
+
     def available_cash(self):
-        """returns the total available cash in the system bu adding the net equity and net loans"""
-        available_cash = self.net_equity() + self.net_loans()
-        return round(available_cash, 2)
+        """returns the total available cash in the system but adding the net equity and net loans"""
+        available_cash = self.total_money_in() - self.total_money_out()
+        return available_cash
 
     def get_period(self, days):
         """Fixed to handle both string and numeric period inputs"""
@@ -611,3 +631,6 @@ class OverviewMetrics:
             return []
 
 test = OverviewMetrics()
+print(
+    test.available_cash()
+)

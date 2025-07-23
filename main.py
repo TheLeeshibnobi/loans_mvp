@@ -82,6 +82,31 @@ def business_login():
         flash('An error occurred during business login', 'error')
         return render_template("user_login_signup.html")
 
+@app.route('/business_signup', methods=['POST', 'GET'])
+def business_signup():
+    if request.method == 'GET':
+        return render_template("user_login_signup.html")
+
+    auth = UserAuthentication()
+    business_name = request.form.get('business_name')
+    email = request.form.get('business_email')
+    password = request.form.get('business_password')
+
+    try:
+        admin_key = auth.business_signup(business_name, email, password)
+        if admin_key:  # Now returns the admin key instead of boolean
+            flash(f'{business_name} signed up as business successfully!', 'success')
+            return render_template("user_login_signup.html",
+                                 show_admin_key=True,
+                                 admin_key=admin_key)
+        else:
+            flash(f'Error signing up {business_name}', 'error')
+            return render_template("user_login_signup.html")
+    except Exception as e:
+        print(f'Exception: {e}')
+        flash('An error occurred during business signup', 'error')
+        return render_template("user_login_signup.html")
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():

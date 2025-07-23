@@ -103,6 +103,115 @@
             font-size: 0.9rem;
             color: #6c757d;
         }
+
+        .password-match-error {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: -0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .password-match-success {
+            color: #28a745;
+            font-size: 0.875rem;
+            margin-top: -0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Admin Key Modal Styles */
+        .admin-key-modal {
+            display: none;
+            position: fixed;
+            z-index: 1050;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .admin-key-modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .admin-key-header {
+            text-align: center;
+            color: #2c3e8c;
+            margin-bottom: 1.5rem;
+        }
+
+        .admin-key-container {
+            background-color: #f8f9fa;
+            border: 2px dashed #2c3e8c;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            text-align: center;
+            position: relative;
+        }
+
+        .admin-key-text {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #2c3e8c;
+            word-break: break-all;
+            margin-bottom: 0.5rem;
+        }
+
+        .copy-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .copy-btn:hover {
+            background-color: #218838;
+        }
+
+        .copy-success {
+            color: #28a745;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .warning-text {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 1rem;
+            margin: 1rem 0;
+            color: #856404;
+            font-size: 0.95rem;
+        }
+
+        .modal-close-btn {
+            background-color: #2c3e8c;
+            color: white;
+            border: none;
+            padding: 0.7rem 2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .modal-close-btn:hover {
+            background-color: #1e2a5a;
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -131,6 +240,30 @@
                 <input type="email" class="form-control" name="business_email" placeholder="Business Email" required>
                 <input type="password" class="form-control" name="business_password" placeholder="Business Password" required>
                 <button type="submit" class="btn btn-primary">Access Business</button>
+
+                <div class="toggle-form">
+                    Don't have a business account? <a onclick="showBusinessSignupForm()">Create Business Account</a>
+                </div>
+            </form>
+
+            <!-- Business Signup Form - Hidden by default -->
+            <form id="business-signup-form" class="hidden" method="POST" action="{{ url_for('business_signup') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+                <div class="step-indicator">Step 1 of 2: Business Registration</div>
+                <h2>Create Business Account</h2>
+                <input type="text" class="form-control" name="business_name" placeholder="Business Name" required>
+                <input type="email" class="form-control" name="business_email" placeholder="Business Email" required>
+                <input type="password" class="form-control" name="business_password" id="business-password" placeholder="Business Password" required>
+                <input type="password" class="form-control" name="confirm_business_password" id="confirm-business-password" placeholder="Confirm Password" required>
+
+                <!-- Password match feedback -->
+                <div id="password-match-feedback"></div>
+
+                <button type="submit" class="btn btn-primary" id="business-signup-btn" disabled>Create Business Account</button>
+
+                <div class="toggle-form">
+                    Already have a business account? <a onclick="showBusinessLoginForm()">Log In</a>
+                </div>
             </form>
 
             <!-- User Login Form - Hidden by default -->
@@ -185,10 +318,137 @@
         </div>
     </div>
 
+    <!-- Admin Key Modal -->
+    <div id="admin-key-modal" class="admin-key-modal">
+        <div class="admin-key-modal-content">
+            <div class="admin-key-header">
+                <h3>🔑 Business Registration Successful!</h3>
+                <p>Your Admin Key has been generated</p>
+            </div>
+
+            <div class="admin-key-container">
+                <div class="admin-key-text" id="admin-key-display"></div>
+                <button class="copy-btn" onclick="copyAdminKey()">📋 Copy Key</button>
+                <div id="copy-feedback" class="copy-success" style="display: none;">✅ Copied to clipboard!</div>
+            </div>
+
+            <div class="warning-text">
+                <strong>⚠️ IMPORTANT - Keep This Key Safe!</strong><br>
+                • This is your <strong>Admin Key</strong> for business owner access<br>
+                • Business owners will need this key to sign up as administrators<br>
+                • Store it securely - you cannot retrieve it again<br>
+                • Do not share it publicly or with unauthorized personnel
+            </div>
+
+            <button class="modal-close-btn" onclick="closeAdminKeyModal()">I've Saved My Admin Key</button>
+        </div>
+    </div>
+
     <script>
+        // Function to show admin key modal after successful business signup
+        function showAdminKeyModal(adminKey) {
+            document.getElementById('admin-key-display').textContent = adminKey;
+            document.getElementById('admin-key-modal').style.display = 'block';
+
+            // Prevent closing modal by clicking outside
+            document.getElementById('admin-key-modal').onclick = function(event) {
+                if (event.target === this) {
+                    // Don't close - force user to acknowledge
+                    return false;
+                }
+            };
+        }
+
+        // Function to copy admin key to clipboard
+        function copyAdminKey() {
+            const adminKeyText = document.getElementById('admin-key-display').textContent;
+
+            // Use the modern clipboard API if available
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(adminKeyText).then(function() {
+                    showCopyFeedback();
+                });
+            } else {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = adminKeyText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showCopyFeedback();
+            }
+        }
+
+        // Function to show copy feedback
+        function showCopyFeedback() {
+            const feedback = document.getElementById('copy-feedback');
+            feedback.style.display = 'block';
+            setTimeout(function() {
+                feedback.style.display = 'none';
+            }, 3000);
+        }
+
+        // Function to close admin key modal
+        function closeAdminKeyModal() {
+            document.getElementById('admin-key-modal').style.display = 'none';
+            // Redirect to business login after closing modal
+            showBusinessLoginForm();
+        }
+
+        // Password confirmation validation for business signup
+        function validateBusinessPasswords() {
+            const password = document.getElementById('business-password').value;
+            const confirmPassword = document.getElementById('confirm-business-password').value;
+            const feedback = document.getElementById('password-match-feedback');
+            const submitBtn = document.getElementById('business-signup-btn');
+
+            if (confirmPassword === '') {
+                feedback.innerHTML = '';
+                submitBtn.disabled = true;
+                return;
+            }
+
+            if (password === confirmPassword) {
+                feedback.innerHTML = '<div class="password-match-success">✓ Passwords match</div>';
+                submitBtn.disabled = false;
+            } else {
+                feedback.innerHTML = '<div class="password-match-error">✗ Passwords do not match</div>';
+                submitBtn.disabled = true;
+            }
+        }
+
+        // Add event listeners for password validation
+        document.addEventListener('DOMContentLoaded', function() {
+            const businessPassword = document.getElementById('business-password');
+            const confirmBusinessPassword = document.getElementById('confirm-business-password');
+
+            if (businessPassword && confirmBusinessPassword) {
+                businessPassword.addEventListener('input', validateBusinessPasswords);
+                confirmBusinessPassword.addEventListener('input', validateBusinessPasswords);
+            }
+        });
+
+        // Function to show business signup form
+        function showBusinessSignupForm() {
+            document.getElementById("business-login-form").classList.add("hidden");
+            document.getElementById("business-signup-form").classList.remove("hidden");
+            document.getElementById("user-login-form").classList.add("hidden");
+            document.getElementById("user-signup-form").classList.add("hidden");
+        }
+
+        // Function to show business login form
+        function showBusinessLoginForm() {
+            document.getElementById("business-signup-form").classList.add("hidden");
+            document.getElementById("business-login-form").classList.remove("hidden");
+            document.getElementById("user-login-form").classList.add("hidden");
+            document.getElementById("user-signup-form").classList.add("hidden");
+        }
+
         // Function to show user login form (called after successful business login)
         function showUserLoginForm(businessName) {
             document.getElementById("business-login-form").classList.add("hidden");
+            document.getElementById("business-signup-form").classList.add("hidden");
             document.getElementById("user-signup-form").classList.add("hidden");
             document.getElementById("user-login-form").classList.remove("hidden");
 
@@ -228,6 +488,13 @@
                 }
             });
         }, 5000);
+
+        // Check if we should show admin key modal (after successful business signup)
+        {% if show_admin_key %}
+            document.addEventListener('DOMContentLoaded', function() {
+                showAdminKeyModal("{{ admin_key }}");
+            });
+        {% endif %}
 
         // Check if we should show user login form (after successful business login)
         {% if show_user_login %}

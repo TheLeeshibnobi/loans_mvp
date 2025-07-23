@@ -110,27 +110,22 @@ def business_signup():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    # Check if business is logged in at the start
+    if 'business_data' not in session:
+        flash('Please log into business first', 'error')
+        return redirect(url_for('business_login'))
+
     if request.method == "GET":
-        # Check if business is logged in
-        if 'business_data' not in session:
-            flash('Please log into business first', 'error')
-            return redirect(url_for('business_login'))
         return render_template("user_login_signup.html",
                                show_user_login=True,
                                business_name=session['business_data'].get('name'))
 
-    # Handle POST request (form submission)
-    # Check if business is still in session
-    if 'business_data' not in session:
-        flash('Business session expired. Please log into business first', 'error')
-        return redirect(url_for('business_login'))
-
+    # Handle POST request
     auth = UserAuthentication()
     email = request.form["email"]
     password = request.form["password"]
     response = auth.login(email, password)
 
-    # Check if login was successful
     if response.get("success", False):
         flash("Login successful!", "success")
         return redirect(url_for("overview_dashboard"))
@@ -176,6 +171,17 @@ def unauthorized_access():
 
 @app.route('/overview_dashboard', methods=['GET', 'POST'])
 def overview_dashboard():
+    # Get business_id from session
+    if 'business_data' not in session:
+        flash('Business session expired. Please log into business first', 'error')
+        return redirect(url_for('business_login'))
+
+    business_id = session['business_data'].get('id')
+
+    if not business_id:
+        flash('Business ID not found in session', 'error')
+        return redirect(url_for('business_login'))
+
     loan_tool = Loans()
     loan_tool.update_overdue_loans()
 
@@ -191,20 +197,22 @@ def overview_dashboard():
         try:
             response_data = {
                 'success': True,
-                'total_disbursed': f"ZMK {overview_tool.total_disbursed(selected_period):,.2f}",
-                'total_repaid': f"ZMK {overview_tool.total_repaid(selected_period):,.2f}",
-                'outstanding_balance': f"ZMK {overview_tool.outstanding_balance(selected_period):,.2f}",
-                'expected_interest': f"ZMK {overview_tool.expected_interest(selected_period):,.2f}",
-                'average_loan_size': f"ZMK {overview_tool.average_loan_size(selected_period):,.2f}",
-                'average_duration': f"{overview_tool.average_duration(selected_period):,.0f} days",
-                'active_loans': f"{overview_tool.active_loans(selected_period):,}",
-                'default_rate': f"{overview_tool.default_rate(selected_period)}%",
-                'transaction_costs' : f"ZMK{overview_tool.total_transaction_costs(selected_period)}",
-                'discount_costs' : f"ZMK{overview_tool.total_discounts_given(selected_period)}",
+                'total_disbursed': f"ZMK {overview_tool.total_disbursed(selected_period, business_id):,.2f}",
+                'total_repaid': f"ZMK {overview_tool.total_repaid(selected_period, business_id):,.2f}",
+                'outstanding_balance': f"ZMK {overview_tool.outstanding_balance(selected_period, business_id):,.2f}",
+                'expected_interest': f"ZMK {overview_tool.expected_interest(selected_period, business_id):,.2f}",
+                'average_loan_size': f"ZMK {overview_tool.average_loan_size(selected_period, business_id):,.2f}",
+                'average_duration': f"{overview_tool.average_duration(selected_period, business_id):,.0f} days",
+                'active_loans': f"{overview_tool.active_loans(selected_period, business_id):,}",
+                'default_rate': f"{overview_tool.default_rate(selected_period, business_id)}%",
+                'transaction_costs': f"ZMK{overview_tool.total_transaction_costs(selected_period, business_id)}",
+                'discount_costs': f"ZMK{overview_tool.total_discounts_given(selected_period, business_id)}",
 
-                'available_cash': overview_tool.available_cash(),
+                'available_cash': overview_tool.available_cash(business_id),
                 'gender_chart': chart_tool.borrowers_by_gender(selected_period),
+                # Assuming Charts class also needs updating
                 'status_distribution_chart': chart_tool.loan_status_distribution(selected_period)
+                # Assuming Charts class also needs updating
             }
             return jsonify(response_data)
         except Exception as e:
@@ -215,44 +223,44 @@ def overview_dashboard():
     overview_tool = OverviewMetrics()
     chart_tool = Charts()
 
-    available_cash = overview_tool.available_cash()
-    total_disbursed = f"ZMK {overview_tool.total_disbursed(selected_period):,.2f}"
-    total_repaid = f"ZMK {overview_tool.total_repaid(selected_period):,.2f}"
-    outstanding_balance = f"ZMK {overview_tool.outstanding_balance(selected_period):,.2f}"
-    expected_interest = f"ZMK {overview_tool.expected_interest(selected_period):,.2f}"
-    average_loan_size = f"ZMK {overview_tool.average_loan_size(selected_period):,.2f}"
-    average_duration = f"{overview_tool.average_duration(selected_period):,.0f} days"
-    active_loans = f"{overview_tool.active_loans(selected_period):,}"
-    default_rate = f"{overview_tool.default_rate(selected_period)}%"
-    transaction_costs = f"ZMK{overview_tool.total_transaction_costs(selected_period)}"
-    discount_costs = f"ZMK{overview_tool.total_discounts_given(selected_period)}"
+    available_cash = overview_tool.available_cash(business_id)
+    total_disbursed = f"ZMK {overview_tool.total_disbursed(selected_period, business_id):,.2f}"
+    total_repaid = f"ZMK {overview_tool.total_repaid(selected_period, business_id):,.2f}"
+    outstanding_balance = f"ZMK {overview_tool.outstanding_balance(selected_period, business_id):,.2f}"
+    expected_interest = f"ZMK {overview_tool.expected_interest(selected_period, business_id):,.2f}"
+    average_loan_size = f"ZMK {overview_tool.average_loan_size(selected_period, business_id):,.2f}"
+    average_duration = f"{overview_tool.average_duration(selected_period, business_id):,.0f} days"
+    active_loans = f"{overview_tool.active_loans(selected_period, business_id):,}"
+    default_rate = f"{overview_tool.default_rate(selected_period, business_id)}%"
+    transaction_costs = f"ZMK{overview_tool.total_transaction_costs(selected_period, business_id)}"
+    discount_costs = f"ZMK{overview_tool.total_discounts_given(selected_period, business_id)}"
 
-    recent_borrowers = overview_tool.recent_borrowers()
-    location_summary = overview_tool.borrowers_by_location(selected_period)
-    weekly_loans_due = overview_tool.weekly_loans_due()
-    gender_chart = chart_tool.borrowers_by_gender(selected_period)
-    status_distribution_chart = chart_tool.loan_status_distribution(selected_period)
+    recent_borrowers = overview_tool.recent_borrowers(business_id)
+    location_summary = overview_tool.borrowers_by_location(selected_period, business_id)
+    weekly_loans_due = overview_tool.weekly_loans_due(business_id)
+    gender_chart = chart_tool.borrowers_by_gender(selected_period)  # May need business_id parameter
+    status_distribution_chart = chart_tool.loan_status_distribution(selected_period)  # May need business_id parameter
 
     formatted_cash = f"{available_cash:,.2f}"
 
     return render_template('overview.html',
-                         available_cash=formatted_cash,
-                         selected_period=selected_period,
-                         total_disbursed=total_disbursed,
-                         total_repaid=total_repaid,
-                         outstanding_balance=outstanding_balance,
-                         expected_interest=expected_interest,
-                         average_loan_size=average_loan_size,
-                         average_duration=average_duration,
-                         active_loans=active_loans,
-                         default_rate=default_rate,
-                         discount_costs=discount_costs,
-                         transaction_costs = transaction_costs,
-                         gender_chart=gender_chart,
-                         status_distribution_chart=status_distribution_chart,
-                         recent_borrowers=recent_borrowers,
-                         location_summary=location_summary,
-                         weekly_loans_due=weekly_loans_due)
+                           available_cash=formatted_cash,
+                           selected_period=selected_period,
+                           total_disbursed=total_disbursed,
+                           total_repaid=total_repaid,
+                           outstanding_balance=outstanding_balance,
+                           expected_interest=expected_interest,
+                           average_loan_size=average_loan_size,
+                           average_duration=average_duration,
+                           active_loans=active_loans,
+                           default_rate=default_rate,
+                           discount_costs=discount_costs,
+                           transaction_costs=transaction_costs,
+                           gender_chart=gender_chart,
+                           status_distribution_chart=status_distribution_chart,
+                           recent_borrowers=recent_borrowers,
+                           location_summary=location_summary,
+                           weekly_loans_due=weekly_loans_due)
 
 
 @app.route('/loans_data', methods=['POST', 'GET'])

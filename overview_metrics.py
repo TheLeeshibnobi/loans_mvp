@@ -16,7 +16,7 @@ class OverviewMetrics:
 
         self.supabase: Client = create_client(url, service_role_key)
 
-    def net_equity(self):
+    def net_equity(self, business_id):
         """Gets the net of equity inserted and dividends paid out — never returns a negative value."""
         try:
             # Cash in
@@ -24,6 +24,7 @@ class OverviewMetrics:
                 self.supabase
                 .table('injections')
                 .select('amount')
+                .eq('business_id', business_id)
                 .execute()
             )
             injection_total = sum(item['amount'] for item in (injection_response.data or []))
@@ -33,6 +34,7 @@ class OverviewMetrics:
                 self.supabase
                 .table('disbursements')
                 .select('amount')
+                .eq('business_id', business_id)
                 .execute()
             )
             disbursements_total = sum(item['amount'] for item in (disbursements_response.data or []))
@@ -43,7 +45,7 @@ class OverviewMetrics:
             print(f"Error calculating net equity: {e}")
             return 0
 
-    def net_loans(self):
+    def net_loans(self, business_id):
         """Gets the net of disbursed loans and repaid loans using the cashflow table."""
         try:
             # loan repayments
@@ -51,6 +53,7 @@ class OverviewMetrics:
                 self.supabase
                 .table('repayments')
                 .select('amount')
+                .eq('business_id', business_id)
                 .execute()
             )
 
@@ -61,6 +64,7 @@ class OverviewMetrics:
                 self.supabase
                 .table('loans')
                 .select('amount')
+                .eq('business_id', business_id)
                 .execute()
             )
 
@@ -71,29 +75,53 @@ class OverviewMetrics:
             print(f"Error calculating net loans: {e}")
             return 0
 
-    def total_money_in(self):
+    def total_money_in(self, business_id):
         """Returns the total of capital in plus loan repayment amount."""
-        repayments_response = self.supabase.table('repayments').select('amount').execute()
-        injections_response = self.supabase.table('injections').select('amount').execute()
+        repayments_response = (
+            self.supabase
+            .table('repayments')
+            .select('amount')
+            .eq('business_id', business_id)
+            .execute()
+        )
+        injections_response = (
+            self.supabase
+            .table('injections')
+            .select('amount')
+            .eq('business_id', business_id)
+            .execute()
+        )
 
         repayments_total = sum(item['amount'] for item in repayments_response.data)
         injections_total = sum(item['amount'] for item in injections_response.data)
 
         return repayments_total + injections_total
 
-    def total_money_out(self):
+    def total_money_out(self, business_id):
         """Returns the total of money disbursed and loans given out."""
-        disbursements_response = self.supabase.table('disbursements').select('amount').execute()
-        loans_response = self.supabase.table('loans').select('amount').execute()
+        disbursements_response = (
+            self.supabase
+            .table('disbursements')
+            .select('amount')
+            .eq('business_id', business_id)
+            .execute()
+        )
+        loans_response = (
+            self.supabase
+            .table('loans')
+            .select('amount')
+            .eq('business_id', business_id)
+            .execute()
+        )
 
         disbursements_total = sum(item['amount'] for item in disbursements_response.data)
         loans_total = sum(item['amount'] for item in loans_response.data)
 
         return disbursements_total + loans_total
 
-    def available_cash(self):
+    def available_cash(self, business_id):
         """returns the total available cash in the system but adding the net equity and net loans"""
-        available_cash = self.total_money_in() - self.total_money_out()
+        available_cash = self.total_money_in(business_id) - self.total_money_out(business_id)
         return available_cash
 
     def get_period(self, days):
@@ -120,7 +148,7 @@ class OverviewMetrics:
             period = today - timedelta(days=30)
         return period, today
 
-    def total_disbursed(self, days):
+    def total_disbursed(self, days, business_id):
         """Returns the total disbursed amount of loans - FIXED to use loans table"""
         try:
             period, today = self.get_period(days)
@@ -129,6 +157,7 @@ class OverviewMetrics:
             response = (
                 self.supabase.table('loans')
                 .select('amount')
+                .eq('business_id', business_id)
                 .gte('created_at', period.isoformat())
                 .lte('created_at', today.isoformat())
                 .execute()
@@ -142,7 +171,7 @@ class OverviewMetrics:
             print(f"Error calculating total disbursed: {e}")
             return 0
 
-    def total_repaid(self, days):
+    def total_repaid(self, days, business_id):
         """returns the total amount repaid"""
         try:
             period, today = self.get_period(days)
@@ -150,6 +179,7 @@ class OverviewMetrics:
             response = (
                 self.supabase.table('repayments')
                 .select('amount')
+                .eq('business_id', business_id)
                 .gte('created_at', period.isoformat())
                 .lte('created_at', today.isoformat())
                 .execute()
@@ -163,7 +193,7 @@ class OverviewMetrics:
             print(f"Error calculating total repaid: {e}")
             return 0
 
-    def outstanding_balance(self, days):
+    def outstanding_balance(self, days, business_id):
         """returns the outstanding balance not yet paid"""
         try:
             period, today = self.get_period(days)
@@ -173,6 +203,7 @@ class OverviewMetrics:
             response = (
                 self.supabase.table('loans')
                 .select('amount')
+                .eq('business_id', business_id)
                 .neq('status', 'Completed')
                 .gte('created_at', period)
                 .lte('created_at', today)
@@ -187,7 +218,7 @@ class OverviewMetrics:
             print(f"Error calculating outstanding balance: {e}")
             return 0
 
-    def expected_interest(self, days):
+    def expected_interest(self, days, business_id):
         """Returns the total expected interest."""
         try:
             period, today = self.get_period(days)
@@ -197,6 +228,7 @@ class OverviewMetrics:
             response = (
                 self.supabase.table('loans')
                 .select('amount, interest_rate')
+                .eq('business_id', business_id)
                 .gte('created_at', period)
                 .lte('created_at', today)
                 .eq('status', 'Active')
@@ -213,7 +245,7 @@ class OverviewMetrics:
             print(f"Error calculating expected interest: {e}")
             return 0
 
-    def average_loan_size(self, days):
+    def average_loan_size(self, days, business_id):
         """Returns the average loan size for a certain period."""
         try:
             period, today = self.get_period(days)
@@ -221,6 +253,7 @@ class OverviewMetrics:
             response = (
                 self.supabase.table('loans')
                 .select('amount')
+                .eq('business_id', business_id)
                 .gte('created_at', period.isoformat())
                 .lte('created_at', today.isoformat())
                 .execute()
@@ -235,7 +268,7 @@ class OverviewMetrics:
             print(f"Error calculating average loan size: {e}")
             return 0
 
-    def average_duration(self, days):
+    def average_duration(self, days, business_id):
         """returns the average loan duration for a certain period"""
         try:
             period, today = self.get_period(days)
@@ -243,6 +276,7 @@ class OverviewMetrics:
             response = (
                 self.supabase.table('loans')
                 .select('duration_days')
+                .eq('business_id', business_id)
                 .gte('created_at', period.isoformat())
                 .lte('created_at', today.isoformat())
                 .execute()
@@ -257,7 +291,7 @@ class OverviewMetrics:
             print(f"Error calculating average duration: {e}")
             return 0
 
-    def active_loans(self, days):
+    def active_loans(self, days, business_id):
         """returns the number of active loans"""
         try:
             period, today = self.get_period(days)
@@ -265,6 +299,7 @@ class OverviewMetrics:
             response = (
                 self.supabase.table('loans')
                 .select('status')
+                .eq('business_id', business_id)
                 .eq('status', 'Active')
                 .gte('created_at', period.isoformat())
                 .lte('created_at', today.isoformat())
@@ -279,7 +314,7 @@ class OverviewMetrics:
             print(f"Error calculating active loans: {e}")
             return 0
 
-    def default_rate(self, days):
+    def default_rate(self, days, business_id):
         """Returns the default rate of loans during a given period."""
         try:
             period, today = self.get_period(days)
@@ -290,6 +325,7 @@ class OverviewMetrics:
             total_response = (
                 self.supabase.table('loans')
                 .select('id')  # Only select what's needed
+                .eq('business_id', business_id)
                 .gte('created_at', start_date)
                 .lte('created_at', end_date)
                 .execute()
@@ -305,6 +341,7 @@ class OverviewMetrics:
             default_response = (
                 self.supabase.table('loans')
                 .select('id')  # Again, only select what's needed
+                .eq('business_id', business_id)
                 .eq('status', 'Overdue')
                 .gte('created_at', start_date)
                 .lte('created_at', end_date)
@@ -319,7 +356,7 @@ class OverviewMetrics:
             print(f"Error calculating default rate: {e}")
             return 0
 
-    def total_transaction_costs(self, days):
+    def total_transaction_costs(self, days, business_id):
         """Returns the total transaction cost for the specified period."""
         try:
             period, today = self.get_period(days)
@@ -330,6 +367,7 @@ class OverviewMetrics:
             response = (
                 self.supabase.table('loans')
                 .select('transaction_costs')  # Only select what's needed
+                .eq('business_id', business_id)
                 .gte('created_at', start_date)
                 .lte('created_at', end_date)
                 .execute()
@@ -344,7 +382,7 @@ class OverviewMetrics:
             print(f"Error calculating total transaction costs: {e}")
             return 0
 
-    def total_discounts_given(self, days):
+    def total_discounts_given(self, days, business_id):
         """Returns the total discount given for the specified period."""
         try:
             period, today = self.get_period(days)
@@ -355,6 +393,7 @@ class OverviewMetrics:
             response = (
                 self.supabase.table('repayments')
                 .select('discount')
+                .eq('business_id', business_id)
                 .gte('created_at', start_date)
                 .lte('created_at', end_date)
                 .execute()
@@ -369,13 +408,14 @@ class OverviewMetrics:
             print(f"Error calculating total discounts given: {e}")
             return 0
 
-    def recent_borrowers(self):
+    def recent_borrowers(self, business_id):
         """Returns a dictionary of 4 recent borrowers including NRC number, issue date, and due date"""
         try:
             response = (
                 self.supabase
                 .table('loans')
                 .select('id', 'borrower_id', 'amount', 'status', 'created_at', 'due_date')
+                .eq('business_id', business_id)
                 .order('id', desc=True)
                 .limit(4)
                 .execute()
@@ -393,6 +433,7 @@ class OverviewMetrics:
                         .table('borrowers')
                         .select('name', 'nrc_number')
                         .eq('id', loan['borrower_id'])
+                        .eq('business_id', business_id)
                         .execute()
                     ).data
 
@@ -409,6 +450,7 @@ class OverviewMetrics:
                         .table('files')
                         .select('docs', 'photos')
                         .eq('loan_id', loan['id'])
+                        .eq('business_id', business_id)
                         .limit(1)
                         .execute()
                     ).data
@@ -439,7 +481,7 @@ class OverviewMetrics:
             print(f"Error getting recent borrowers: {e}")
             return []
 
-    def locations_ids(self, days):
+    def locations_ids(self, days, business_id):
         """returns a dictionary of locations and the borrowers ids that belong to that location"""
         try:
             period, today = self.get_period(days)
@@ -451,6 +493,7 @@ class OverviewMetrics:
                 self.supabase
                 .table('borrowers')
                 .select('location')
+                .eq('business_id', business_id)
                 .gt('created_at', start_date)
                 .lt('created_at', end_date)
                 .execute()
@@ -470,6 +513,7 @@ class OverviewMetrics:
                         self.supabase
                         .table('borrowers')
                         .select('id')
+                        .eq('business_id', business_id)
                         .eq('location', city)
                         .gt('created_at', start_date)
                         .lt('created_at', end_date)
@@ -486,10 +530,10 @@ class OverviewMetrics:
             print(f"Error getting locations IDs: {e}")
             return {}
 
-    def location_totals(self, days):
+    def location_totals(self, days, business_id):
         """Returns a dictionary of total loan amounts given to each location."""
         try:
-            location_ids = self.locations_ids(days)
+            location_ids = self.locations_ids(days, business_id)
             if not location_ids:
                 return {}
 
@@ -503,6 +547,7 @@ class OverviewMetrics:
                             self.supabase
                             .table('loans')
                             .select('amount')
+                            .eq('business_id', business_id)
                             .eq('borrower_id', borrower_id)
                             .execute()
                         )
@@ -520,10 +565,10 @@ class OverviewMetrics:
             print(f"Error calculating location totals: {e}")
             return {}
 
-    def location_loan_numbers(self, days):
+    def location_loan_numbers(self, days, business_id):
         """returns a dictionary of the total number of loans in the specific location"""
         try:
-            location_ids = self.locations_ids(days)
+            location_ids = self.locations_ids(days, business_id)
             if not location_ids:
                 return {}
 
@@ -536,11 +581,11 @@ class OverviewMetrics:
             print(f"Error calculating location loan numbers: {e}")
             return {}
 
-    def location_average_loan(self, days):
+    def location_average_loan(self, days, business_id):
         """Returns a dictionary of average loan amounts per location."""
         try:
-            location_totals = self.location_totals(days)
-            location_loan_numbers = self.location_loan_numbers(days)
+            location_totals = self.location_totals(days, business_id)
+            location_loan_numbers = self.location_loan_numbers(days, business_id)
 
             if not location_totals or not location_loan_numbers:
                 return {}
@@ -557,13 +602,13 @@ class OverviewMetrics:
             print(f"Error calculating location average loans: {e}")
             return {}
 
-    def borrowers_by_location(self, days):
+    def borrowers_by_location(self, days, business_id):
         """Creates a dictionary summary of total borrowers, loans, and average loan per location."""
         try:
             # Get data from existing methods
-            location_ids = self.locations_ids(days)
-            location_totals = self.location_totals(days)
-            location_averages = self.location_average_loan(days)
+            location_ids = self.locations_ids(days, business_id)
+            location_totals = self.location_totals(days, business_id)
+            location_averages = self.location_average_loan(days, business_id)
 
             if not location_ids:
                 return {}
@@ -581,7 +626,7 @@ class OverviewMetrics:
             print(f"Error calculating borrowers by location: {e}")
             return {}
 
-    def weekly_loans_due(self):
+    def weekly_loans_due(self, business_id):
         """returns a list of loans that are due in the upcoming 7 days"""
         try:
             today = datetime.today().date()
@@ -596,6 +641,7 @@ class OverviewMetrics:
                 self.supabase
                 .table('loans')
                 .select('borrower_id', 'amount', 'interest_rate', 'due_date')
+                .eq('business_id', business_id)
                 .gt('due_date', start_date)
                 .lt('due_date', end_date)
                 .neq('status', 'Completed')
@@ -611,7 +657,14 @@ class OverviewMetrics:
                 try:
                     borrower_id = info["borrower_id"]
                     # get the name of that id from the borrowers table
-                    borrower_info = self.supabase.table('borrowers').select('name').eq('id', borrower_id).execute().data
+                    borrower_info = (
+                        self.supabase
+                        .table('borrowers')
+                        .select('name')
+                        .eq('id', borrower_id)
+                        .eq('business_id', business_id)
+                        .execute()
+                    ).data
                     borrower_name = borrower_info[0]['name'] if borrower_info and len(borrower_info) > 0 else "Unknown"
                     due_date = info["due_date"]
                     amount = info["amount"] + (info["amount"] * (info["interest_rate"] / 100))
@@ -629,8 +682,3 @@ class OverviewMetrics:
         except Exception as e:
             print(f"Error getting weekly loans due: {e}")
             return []
-
-test = OverviewMetrics()
-print(
-    test.available_cash()
-)

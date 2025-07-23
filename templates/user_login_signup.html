@@ -36,6 +36,15 @@
             font-weight: bold;
         }
 
+        .btn-secondary {
+            width: 100%;
+            background-color: #6c757d;
+            border: none;
+            padding: 0.7rem;
+            font-weight: bold;
+            margin-top: 0.5rem;
+        }
+
         .toggle-form {
             text-align: center;
             margin-top: 1rem;
@@ -72,6 +81,28 @@
             border-color: #f5c6cb;
             color: #721c24;
         }
+
+        .business-info {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .business-name {
+            font-weight: bold;
+            color: #2c3e8c;
+            font-size: 1.1rem;
+        }
+
+        .step-indicator {
+            text-align: center;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -92,23 +123,50 @@
                 {% endif %}
             {% endwith %}
 
-            <!-- Login Form - Now visible by default -->
-            <form id="login-form" method="POST" action="{{ url_for('login') }}">
+            <!-- Business Login Form - Visible by default -->
+            <form id="business-login-form" method="POST" action="{{ url_for('business_login') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
-                <h2>Log In</h2>
-                <input type="email" class="form-control" name="email" placeholder="Email" required>
-                <input type="password" class="form-control" name="password" placeholder="Password" required>
+                <div class="step-indicator">Step 1 of 2: Business Authentication</div>
+                <h2>Business Login</h2>
+                <input type="email" class="form-control" name="business_email" placeholder="Business Email" required>
+                <input type="password" class="form-control" name="business_password" placeholder="Business Password" required>
+                <button type="submit" class="btn btn-primary">Access Business</button>
+            </form>
+
+            <!-- User Login Form - Hidden by default -->
+            <form id="user-login-form" class="hidden" method="POST" action="{{ url_for('login') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+                <div class="step-indicator">Step 2 of 2: User Authentication</div>
+
+                <!-- Business Info Display -->
+                <div class="business-info">
+                    <div class="business-name" id="business-name-display">Business Name</div>
+                    <small class="text-muted">You are logging into this business</small>
+                </div>
+
+                <h2>User Login</h2>
+                <input type="email" class="form-control" name="email" placeholder="User Email" required>
+                <input type="password" class="form-control" name="password" placeholder="User Password" required>
                 <button type="submit" class="btn btn-primary">Log In</button>
+                <button type="button" class="btn btn-secondary" onclick="goBackToBusiness()">Change Business</button>
+
                 <div class="toggle-form">
-                    Don't have an account? <a onclick="toggleForms()">Sign Up</a>
+                    Don't have an account? <a onclick="showSignupForm()">Sign Up</a>
                 </div>
             </form>
 
-            <!-- Signup Form - Now hidden by default -->
-            <form id="signup-form" class="hidden" method="POST" action="{{ url_for('signup') }}">
+            <!-- User Signup Form - Hidden by default -->
+            <form id="user-signup-form" class="hidden" method="POST" action="{{ url_for('signup') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
-                <h2>Sign Up</h2>
+                <div class="step-indicator">Step 2 of 2: User Registration</div>
 
+                <!-- Business Info Display -->
+                <div class="business-info">
+                    <div class="business-name" id="business-name-display-signup">Business Name</div>
+                    <small class="text-muted">You are signing up for this business</small>
+                </div>
+
+                <h2>Create User Account</h2>
                 <input type="text" class="form-control" name="name" placeholder="Full Name" required>
                 <input type="email" class="form-control" name="email" placeholder="Email" required>
                 <input type="password" class="form-control" name="password" placeholder="Password" required>
@@ -117,9 +175,10 @@
                 <input type="text" class="form-control" name="secret_key" placeholder="Registration Secret Key" required>
 
                 <button type="submit" class="btn btn-primary">Create Account</button>
+                <button type="button" class="btn btn-secondary" onclick="goBackToBusiness()">Change Business</button>
 
                 <div class="toggle-form">
-                    Already have an account? <a onclick="toggleForms()">Log In</a>
+                    Already have an account? <a onclick="showLoginForm()">Log In</a>
                 </div>
             </form>
 
@@ -127,9 +186,36 @@
     </div>
 
     <script>
-        function toggleForms() {
-            document.getElementById("signup-form").classList.toggle("hidden");
-            document.getElementById("login-form").classList.toggle("hidden");
+        // Function to show user login form (called after successful business login)
+        function showUserLoginForm(businessName) {
+            document.getElementById("business-login-form").classList.add("hidden");
+            document.getElementById("user-signup-form").classList.add("hidden");
+            document.getElementById("user-login-form").classList.remove("hidden");
+
+            // Update business name display
+            if (businessName) {
+                document.getElementById("business-name-display").textContent = businessName;
+                document.getElementById("business-name-display-signup").textContent = businessName;
+            }
+        }
+
+        // Function to show signup form
+        function showSignupForm() {
+            document.getElementById("user-login-form").classList.add("hidden");
+            document.getElementById("user-signup-form").classList.remove("hidden");
+        }
+
+        // Function to show login form
+        function showLoginForm() {
+            document.getElementById("user-signup-form").classList.add("hidden");
+            document.getElementById("user-login-form").classList.remove("hidden");
+        }
+
+        // Function to go back to business login
+        function goBackToBusiness() {
+            document.getElementById("user-login-form").classList.add("hidden");
+            document.getElementById("user-signup-form").classList.add("hidden");
+            document.getElementById("business-login-form").classList.remove("hidden");
         }
 
         // Auto-dismiss flash messages after 5 seconds
@@ -142,6 +228,17 @@
                 }
             });
         }, 5000);
+
+        // Check if we should show user login form (after successful business login)
+        {% if show_user_login %}
+            document.addEventListener('DOMContentLoaded', function() {
+                showUserLoginForm("{{ business_name }}");
+            });
+        {% endif %}
+
+        // Example: Call this function from your Python backend after successful business login
+        // You can pass the business name to display it
+        // showUserLoginForm("Example Business Name");
     </script>
 
     <!-- Bootstrap 5 JS Bundle -->

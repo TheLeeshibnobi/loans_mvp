@@ -48,14 +48,58 @@ def inject_csrf_token():
 def user_auth():
     return render_template('user_login_signup.html')
 
-# <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/> implement in all forms
+
+@app.route('/business_login', methods=['GET', 'POST'])  # Added missing slash
+def business_login():
+    if request.method == 'GET':
+        return render_template("user_login_signup.html")  # Show the form
+
+    # Handle POST request
+    business_email = request.form.get('business_email')
+    business_password = request.form.get('business_password')
+
+    auth = UserAuthentication()
+
+    try:
+        result = auth.business_login(business_email, business_password)
+
+        if result.get("success", False):  # Assuming your method returns a dict with success key
+            # Store business info in session
+            session['business_data'] = result.get('business_data', {})
+            flash('Business login successful!', 'success')
+
+            # Redirect to the same page but now show user login form
+            # You'll need to pass business data to show the user login form
+            return render_template("user_login_signup.html",
+                                   show_user_login=True,
+                                   business_name=result.get('business_data', {}).get('name'))
+        else:
+            flash('Wrong business credentials', 'error')
+            return render_template("user_login_signup.html")
+
+    except Exception as e:
+        print(f'Exception: {e}')
+        flash('An error occurred during business login', 'error')
+        return render_template("user_login_signup.html")
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "GET":
-        # Render the login page template
-        return render_template("user_login_signup.html")
+        # Check if business is logged in
+        if 'business_data' not in session:
+            flash('Please log into business first', 'error')
+            return redirect(url_for('business_login'))
+        return render_template("user_login_signup.html",
+                               show_user_login=True,
+                               business_name=session['business_data'].get('name'))
 
     # Handle POST request (form submission)
+    # Check if business is still in session
+    if 'business_data' not in session:
+        flash('Business session expired. Please log into business first', 'error')
+        return redirect(url_for('business_login'))
+
     auth = UserAuthentication()
     email = request.form["email"]
     password = request.form["password"]

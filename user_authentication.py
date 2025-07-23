@@ -83,3 +83,43 @@ class UserAuthentication:
 
         except Exception as e:
             return {"success": False, "message": f"Login failed: {str(e)}"}
+
+    def business_login(self, business_email, business_password):
+        """Logs the user into the business"""
+        try:
+            # Get business user by email
+            result = self.supabase.table("business_users").select("*").eq("email", business_email).execute()
+
+            # Check if user exists
+            if not result.data:
+                return {"success": False, "message": "Invalid email or password"}
+
+            business_user = result.data[0]
+
+            # Verify password (assuming passwords are hashed)
+            stored_password = business_user.get("password")
+
+            # If passwords are hashed, use proper verification:
+            # if not bcrypt.checkpw(business_password.encode('utf-8'), stored_password.encode('utf-8')):
+            #     return {"success": False, "message": "Invalid email or password"}
+
+            # If passwords are stored in plain text (NOT recommended for production):
+            if stored_password != business_password:
+                return {"success": False, "message": "Invalid email or password"}
+
+            # Return success with business data
+            return {
+                "success": True,
+                "message": "Business login successful",
+                "business_data": {
+                    "id": business_user.get("id"),
+                    "email": business_user.get("email"),
+                    "name": business_user.get("business_name"),  # Adjust field name as needed
+                    # Add other relevant business fields
+                }
+            }
+
+        except Exception as e:
+            return {"success": False, "message": f"Login failed: {str(e)}"}
+
+

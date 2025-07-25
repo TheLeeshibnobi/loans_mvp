@@ -7,6 +7,8 @@
     <title>InXource Header</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <style>
         body {
@@ -48,17 +50,23 @@
             margin-bottom: 2rem;
         }
 
-        /* Navigation emoji styles */
-        .nav-emoji {
-            font-size: 1.5rem;
-            transition: transform 0.2s ease;
+        /* Professional icon styles */
+        .nav-icon {
+            font-size: 1.2rem;
+            transition: all 0.2s ease;
+            color: #495057;
         }
 
-        .nav-emoji:hover {
-            transform: scale(1.2);
+        .nav-link:hover .nav-icon {
+            color: #667eea;
+            transform: translateY(-1px);
         }
 
-        /* Desktop spacing for emojis */
+        .nav-link.active .nav-icon {
+            color: #667eea;
+        }
+
+        /* Desktop spacing for icons */
         @media (min-width: 769px) {
             .navbar-nav .nav-item {
                 margin: 0 1.5rem;
@@ -109,13 +117,20 @@
             visibility: visible;
         }
 
-        /* Show text on mobile, emoji on desktop */
+        /* Show text on mobile, icon on desktop */
         .nav-text {
             display: none;
         }
 
-        .nav-emoji {
+        .nav-icon {
             display: inline;
+        }
+
+        /* Professional header icon */
+        .header-icon {
+            color: #667eea;
+            font-size: 2.5rem;
+            margin-right: 15px;
         }
 
         /* Responsive adjustments */
@@ -129,12 +144,12 @@
                 border-radius: 15px;
             }
 
-            /* Show text on mobile, hide emoji */
+            /* Show text on mobile, hide icon */
             .nav-text {
                 display: inline;
             }
 
-            .nav-emoji {
+            .nav-icon {
                 display: none;
             }
 
@@ -143,6 +158,34 @@
             .nav-tooltip::before {
                 display: none;
             }
+
+            .header-icon {
+                font-size: 2rem;
+                margin-right: 10px;
+            }
+        }
+
+        /* Enhanced navbar styling */
+        .navbar {
+            border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .nav-link {
+            font-weight: 500;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin: 0 2px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+        .nav-link.active {
+            background-color: rgba(102, 126, 234, 0.15);
+            color: #667eea;
         }
     </style>
 </head>
@@ -154,7 +197,9 @@
                 <div class="row">
                     <div class="col-12">
                         <div class="header-section text-center">
-                            <h1 class="display-4 gradient-text mb-2">📘 InXource Loan Dashboard</h1>
+                            <h1 class="display-4 gradient-text mb-2">
+                                <i class="bi bi-graph-up-arrow header-icon"></i>InXource Loan Dashboard
+                            </h1>
                             <p class="subtitle-text mb-0">Real-time insights into loan performance and borrower activity</p>
                         </div>
                     </div>
@@ -173,62 +218,67 @@
                                 <div class="collapse navbar-collapse" id="navbarNav">
                                     <ul class="navbar-nav mx-auto">
                                         <li class="nav-item">
-                                            <a class="nav-link active fw-semibold nav-tooltip" aria-current="page" href="{{ url_for('overview_dashboard') }}" data-tooltip="Overview">
-                                                <span class="nav-emoji">📊</span>
-                                                <span class="nav-text">📊 Overview</span>
+                                            <a class="nav-link active fw-semibold nav-tooltip" aria-current="page" href="{{ url_for('overview_dashboard') }}" data-tooltip="Overview Dashboard">
+                                                <i class="bi bi-speedometer2 nav-icon"></i>
+                                                <span class="nav-text">Overview</span>
                                             </a>
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('loan_repayment') }}" data-tooltip="Record Repayment">
-                                                <span class="nav-emoji">💰</span>
-                                                <span class="nav-text">💰 Record Repayment</span>
+                                                <i class="bi bi-cash-coin nav-icon"></i>
+                                                <span class="nav-text">Record Repayment</span>
                                             </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('search_borrower') }}" data-tooltip="Submit Loan">
-                                                <span class="nav-emoji">📝</span>
-                                                <span class="nav-text">📝 Submit Loan</span>
+                                            <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('search_borrower') }}" data-tooltip="Submit Loan Application">
+                                                <i class="bi bi-file-earmark-plus nav-icon"></i>
+                                                <span class="nav-text">Submit Loan</span>
                                             </a>
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('customer_analytics_dashboard') }}" data-tooltip="Customer Analytics">
-                                                <span class="nav-emoji">👥</span>
-                                                <span class="nav-text">👥 Customer Analytics</span>
+                                                <i class="bi bi-people-fill nav-icon"></i>
+                                                <span class="nav-text">Customer Analytics</span>
                                             </a>
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('business_analytics') }}" data-tooltip="Business Analytics">
-                                                <span class="nav-emoji">📈</span>
-                                                <span class="nav-text">📈 Business Analytics</span>
+                                                <i class="bi bi-bar-chart-line nav-icon"></i>
+                                                <span class="nav-text">Business Analytics</span>
                                             </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('loans_data') }}" data-tooltip="View Loans">
-                                                <span class="nav-emoji">📋</span>
-                                                <span class="nav-text">📋 View Loans</span>
+                                            <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('loans_data') }}" data-tooltip="View All Loans">
+                                                <i class="bi bi-table nav-icon"></i>
+                                                <span class="nav-text">View Loans</span>
                                             </a>
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('borrower_data') }}" data-tooltip="View Borrowers">
-                                                <span class="nav-emoji">👤</span>
-                                                <span class="nav-text">👤 View Borrowers</span>
+                                                <i class="bi bi-person-lines-fill nav-icon"></i>
+                                                <span class="nav-text">View Borrowers</span>
                                             </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('ai_agents') }}" data-tooltip="Agents">
-                                                <span class="nav-emoji">👨‍💼</span>
-                                                <span class="nav-text">👨‍💼 Agents</span>
+                                            <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('expenses') }}" data-tooltip="Expense Management">
+                                                <i class="bi bi-receipt nav-icon"></i>
+                                                <span class="nav-text">Expenses</span>
                                             </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('settings') }}" data-tooltip="Settings">
-                                                <span class="nav-emoji">⚙️</span>
-                                                <span class="nav-text">⚙️ Settings</span>
+                                            <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('ai_agents') }}" data-tooltip="AI Agents">
+                                                <i class="bi bi-robot nav-icon"></i>
+                                                <span class="nav-text">Agents</span>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link fw-semibold nav-tooltip" href="{{ url_for('settings') }}" data-tooltip="System Settings">
+                                                <i class="bi bi-gear-fill nav-icon"></i>
+                                                <span class="nav-text">Settings</span>
                                             </a>
                                         </li>
                                     </ul>
                                 </div>
-                            </div>
                         </nav>
                     </div>
                 </div>

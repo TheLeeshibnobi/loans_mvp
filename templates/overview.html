@@ -126,6 +126,15 @@
       </div>
     </div>
 
+    <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+      <div id="card-expense_costs" name="expense_costs" class="card text-center shadow-sm text-dark kpi-card">
+        <div class="card-body">
+          <div class="h4">{{ expense_costs }}</div>
+          <div class="text-muted">Expense Costs</div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
 
@@ -466,8 +475,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     updateKPICard('card-average-duration', data.average_duration);
                     updateKPICard('card-active-loans', data.active_loans);
                     updateKPICard('card-default-rate', data.default_rate);
-                    updateKPICard('card-transaction_costs', data.default_rate);
-                    updateKPICard('card-discount_costs', data.default_rate);
+                    updateKPICard('card-transaction_costs', data.transaction_costs);
+                    updateKPICard('card-discount_costs', data.discount_costs);
+                    updateKPICard('card-expense_costs', data.expense_costs);
 
                     // Update available cash
                     if (data.available_cash !== undefined) {

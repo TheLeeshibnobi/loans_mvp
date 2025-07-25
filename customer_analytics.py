@@ -65,7 +65,7 @@ class CustomerAnalytics:
             logging.error(f"Error applying gender filter: {str(e)}")
             return query
 
-    def total_customers(self, gender, month, year):
+    def total_customers(self, gender, month, year, business_id):
         """Returns the total number of customers based on gender, month, and year."""
         try:
             # Validate inputs
@@ -80,6 +80,7 @@ class CustomerAnalytics:
             query = (self.supabase
                      .table("borrowers")
                      .select("nrc_number")
+                     .eq("business_id", business_id)
                      .gte("created_at", start)
                      .lte("created_at", end))
 
@@ -91,7 +92,7 @@ class CustomerAnalytics:
             logging.error(f"Error in total_customers: {str(e)}")
             return 0
 
-    def get_location_by_status(self, gender, year, month, statuses):
+    def get_location_by_status(self, gender, year, month, statuses, business_id):
         """
         Returns the most common location among borrowers with given loan statuses
         (e.g., ['Overdue', 'Default'] for worst, ['Completed'] for best).
@@ -116,6 +117,7 @@ class CustomerAnalytics:
             loan_query = (self.supabase
                           .table("loans")
                           .select("borrower_id, status")
+                          .eq("business_id", business_id)
                           .or_(status_filter)
                           .gte("created_at", start)
                           .lte("created_at", end))
@@ -136,6 +138,7 @@ class CustomerAnalytics:
                     borrower_query = (self.supabase
                                       .table('borrowers')
                                       .select('location')
+                                      .eq('business_id', business_id)
                                       .eq('id', borrower_id))
 
                     borrower_query = self.apply_gender_filter(borrower_query, gender)
@@ -160,13 +163,13 @@ class CustomerAnalytics:
             logging.error(f"Error in get_location_by_status: {str(e)}")
             return "No data found"
 
-    def worst_location(self, gender, year, month):
-        return self.get_location_by_status(gender, year, month, ['Overdue', 'Default'])
+    def worst_location(self, gender, year, month, business_id):
+        return self.get_location_by_status(gender, year, month, ['Overdue', 'Default'], business_id)
 
-    def best_location(self, gender, year, month):
-        return self.get_location_by_status(gender, year, month, ['Completed'])
+    def best_location(self, gender, year, month, business_id):
+        return self.get_location_by_status(gender, year, month, ['Completed'], business_id)
 
-    def average_loan_amount(self, gender, year, month):
+    def average_loan_amount(self, gender, year, month, business_id):
         """returns the average loan amount based on the gender, year, month"""
         try:
             # Validate inputs
@@ -182,6 +185,7 @@ class CustomerAnalytics:
                 self.supabase
                 .table('borrowers')
                 .select('id')
+                .eq("business_id", business_id)
                 .gte("created_at", start)
                 .lte("created_at", end)
             )
@@ -199,6 +203,7 @@ class CustomerAnalytics:
             loan_query = (self.supabase
                           .table("loans")
                           .select("amount")
+                          .eq("business_id", business_id)
                           .in_("borrower_id", borrower_ids))
 
             loan_response = loan_query.execute()
@@ -217,7 +222,7 @@ class CustomerAnalytics:
             logging.error(f"Error in average_loan_amount: {str(e)}")
             return 0.0
 
-    def count_loans_by_status(self, location_dict, status, year, month):
+    def count_loans_by_status(self, location_dict, status, year, month, business_id):
         """
         Counts the number of loans per location with a given status (or list of statuses).
         """
@@ -241,6 +246,7 @@ class CustomerAnalytics:
                         loan_query = (self.supabase
                                       .table("loans")
                                       .select("id")
+                                      .eq("business_id", business_id)
                                       .in_("borrower_id", borrower_ids)
                                       .gte("created_at", start)
                                       .lte("created_at", end))
@@ -267,7 +273,7 @@ class CustomerAnalytics:
             logging.error(f"Error in count_loans_by_status: {str(e)}")
             return {}
 
-    def total_town_loans(self, gender, year, month):
+    def total_town_loans(self, gender, year, month, business_id):
         """
         Returns a dictionary of total loans given per town for a specific gender, year, and month.
         """
@@ -277,6 +283,7 @@ class CustomerAnalytics:
                 self.supabase
                 .table('borrowers')
                 .select('location', 'id')
+                .eq("business_id", business_id)
             )
 
             query = self.apply_gender_filter(borrower_query, gender)
@@ -295,12 +302,12 @@ class CustomerAnalytics:
                 return {}
 
             # Step 2: Use the reusable function to get loan counts (any status = all loans)
-            return self.count_loans_by_status(location_dict, status="*", year=year, month=month)
+            return self.count_loans_by_status(location_dict, status="*", year=year, month=month, business_id=business_id)
         except Exception as e:
             logging.error(f"Error in total_town_loans: {str(e)}")
             return {}
 
-    def total_town_completed_repayments(self, gender, year, month):
+    def total_town_completed_repayments(self, gender, year, month, business_id):
         """returns a dictionary of total loans that have been fully returned per town for a specific gender,
          year, and month"""
         try:
@@ -309,6 +316,7 @@ class CustomerAnalytics:
                 self.supabase
                 .table('borrowers')
                 .select('location', 'id')
+                .eq("business_id", business_id)
             )
 
             query = self.apply_gender_filter(borrower_query, gender)
@@ -327,16 +335,16 @@ class CustomerAnalytics:
                 return {}
 
             # Step 2: Use the reusable function to get loan counts (completed status)
-            return self.count_loans_by_status(location_dict, status="Completed", year=year, month=month)
+            return self.count_loans_by_status(location_dict, status="Completed", year=year, month=month, business_id=business_id)
         except Exception as e:
             logging.error(f"Error in total_town_completed_repayments: {str(e)}")
             return {}
 
-    def location_performance_ranking(self, gender, year, month):
+    def location_performance_ranking(self, gender, year, month, business_id):
         """Returns a dictionary with towns ranked by repayment rate (highest first), formatted with %."""
         try:
-            total_town_loans = self.total_town_loans(gender, year, month)
-            total_town_completed_repayments = self.total_town_completed_repayments(gender, year, month)
+            total_town_loans = self.total_town_loans(gender, year, month, business_id)
+            total_town_completed_repayments = self.total_town_completed_repayments(gender, year, month, business_id)
 
             if not total_town_loans:
                 return {}
@@ -366,7 +374,7 @@ class CustomerAnalytics:
             logging.error(f"Error in location_performance_ranking: {str(e)}")
             return {}
 
-    def loans_by_occupation(self, gender, year, month):
+    def loans_by_occupation(self, gender, year, month, business_id):
         """returns a dictionary of occupations as keys and number of loans given to that occupation as values"""
         try:
             # Step 1: Get all borrowers and group them by occupation
@@ -374,6 +382,7 @@ class CustomerAnalytics:
                 self.supabase
                 .table('borrowers')
                 .select('occupation', 'id')
+                .eq("business_id", business_id)
             )
 
             query = self.apply_gender_filter(borrower_query, gender)
@@ -392,18 +401,19 @@ class CustomerAnalytics:
                 return {}
 
             # Step 2: Use the reusable function to get loan counts (any status = all loans)
-            return self.count_loans_by_status(occupation_dict, status="*", year=year, month=month)
+            return self.count_loans_by_status(occupation_dict, status="*", year=year, month=month, business_id=business_id)
         except Exception as e:
             logging.error(f"Error in loans_by_occupation: {str(e)}")
             return {}
 
-    def loans_by_age_group(self, gender, year, month):
+    def loans_by_age_group(self, gender, year, month, business_id):
         """returns a dictionary of age groups as keys and the total loans given to them as values"""
         try:
             borrower_query = (
                 self.supabase
                 .table('borrowers')
                 .select('birth_date', 'id')
+                .eq("business_id", business_id)
             )
 
             query = self.apply_gender_filter(borrower_query, gender)
@@ -462,10 +472,10 @@ class CustomerAnalytics:
                 "above 60": 0
             }
 
-    def loans_by_location_chart(self, gender, year, month):
+    def loans_by_location_chart(self, gender, year, month, business_id):
         """returns an HTML string of a pie chart for loans by location"""
         try:
-            loan_location_data = self.total_town_loans(gender, year, month)
+            loan_location_data = self.total_town_loans(gender, year, month, business_id)
 
             # Check if data is empty
             if not loan_location_data or all(value == 0 for value in loan_location_data.values()):
@@ -524,10 +534,10 @@ class CustomerAnalytics:
             logging.error(f"Error in loans_by_location_chart: {str(e)}")
             return f"<div style='text-align: center; padding: 20px; font-family: Arial, sans-serif; color: red;'>Error generating chart: Unable to create visualization</div>"
 
-    def loans_by_occupation_chart(self, gender, year, month):
+    def loans_by_occupation_chart(self, gender, year, month, business_id):
         """returns an HTML string of a bar chart for loans by occupation"""
         try:
-            loans_occupation_data = self.loans_by_occupation(gender, year, month)
+            loans_occupation_data = self.loans_by_occupation(gender, year, month, business_id)
 
             # Check if data is empty
             if not loans_occupation_data or all(value == 0 for value in loans_occupation_data.values()):
@@ -584,10 +594,10 @@ class CustomerAnalytics:
             logging.error(f"Error in loans_by_occupation_chart: {str(e)}")
             return f"<div style='text-align: center; padding: 20px; font-family: Arial, sans-serif; color: red;'>Error generating chart: Unable to create visualization</div>"
 
-    def age_group_radial_bar_chart(self, gender, year, month):
+    def age_group_radial_bar_chart(self, gender, year, month, business_id):
         """returns an HTML string of a radial_bar_chart for loans by age group"""
         try:
-            age_group_loans_data = self.loans_by_age_group(gender, year, month)
+            age_group_loans_data = self.loans_by_age_group(gender, year, month, business_id)
 
             # Check if data is empty
             if not age_group_loans_data or all(value == 0 for value in age_group_loans_data.values()):

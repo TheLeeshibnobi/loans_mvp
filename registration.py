@@ -19,8 +19,8 @@ class Registration:
         except Exception as e:
             raise ValueError(f"Failed to create Supabase client: {str(e)}")
 
-    def check_borrower(self, nrc):
-        """Checks if a borrower is registered in the database using the NRC number"""
+    def check_borrower(self, nrc, business_id):
+        """Checks if a borrower is registered in the database using the NRC number for a specific business"""
         try:
             if not nrc or not str(nrc).strip():
                 return False
@@ -30,6 +30,7 @@ class Registration:
                 .table('borrowers')
                 .select('nrc_number')
                 .eq('nrc_number', str(nrc).strip())
+                .eq('business_id', business_id)
                 .execute()
             )
 
@@ -38,18 +39,19 @@ class Registration:
             print(f"Error checking borrower with NRC {nrc}: {str(e)}")
             return False
 
-    def get_borrower_id(self, nrc):
-        """Returns borrower information using the borrower nrc"""
+    def get_borrower_id(self, nrc, business_id):
+        """Returns borrower information using the borrower nrc for a specific business"""
         try:
             if not nrc or not str(nrc).strip():
                 return None
 
-            if self.check_borrower(nrc):
+            if self.check_borrower(nrc, business_id):
                 response = (
                     self.supabase
                     .table('borrowers')
                     .select('*')
                     .eq('nrc_number', str(nrc).strip())
+                    .eq('business_id', business_id)
                     .limit(1)
                     .execute()
                 )
@@ -64,8 +66,8 @@ class Registration:
             print(f"Error getting borrower with NRC {nrc}: {str(e)}")
             return None
 
-    def get_borrower_data(self, borrower_id):
-        """returns the borrower information using the borrower id"""
+    def get_borrower_data(self, borrower_id, business_id):
+        """returns the borrower information using the borrower id for a specific business"""
         try:
             if not borrower_id:
                 return None
@@ -75,6 +77,7 @@ class Registration:
                 .table('borrowers')
                 .select('*')
                 .eq('id', borrower_id)
+                .eq('business_id', business_id)
                 .limit(1)
                 .execute()
             )
@@ -87,8 +90,8 @@ class Registration:
             print(f"Error getting borrower data for ID {borrower_id}: {str(e)}")
             return None
 
-    def update_loan_table(self, amount, status, interest_rate, duration_days, due_date, nrc):
-        """Records a new loan in the loan table and returns the loan ID"""
+    def update_loan_table(self, amount, status, interest_rate, duration_days, due_date, nrc, business_id):
+        """Records a new loan in the loan table and returns the loan ID for a specific business"""
         try:
             # Validate inputs
             if not nrc or not str(nrc).strip():
@@ -97,7 +100,7 @@ class Registration:
             if not amount or float(amount) <= 0:
                 return "Invalid loan amount"
 
-            raw_borrower_data = self.get_borrower_id(nrc)
+            raw_borrower_data = self.get_borrower_id(nrc, business_id)
             if not raw_borrower_data:
                 return "Borrower not found"
 
@@ -107,7 +110,8 @@ class Registration:
                 'status': str(status) if status else 'Pending',
                 'interest_rate': float(interest_rate) if interest_rate else 0.0,
                 'duration_days': int(duration_days) if duration_days else 0,
-                'due_date': due_date
+                'due_date': due_date,
+                'business_id': business_id
             }
 
             response = self.supabase.table('loans').insert(data).execute()
@@ -129,9 +133,9 @@ class Registration:
             print(f"Error updating loan table: {str(e)}")
             return f"Database error: {str(e)}"
 
-    def insert_to_loans_and_disbursements_tables(self, amount, status, interest_rate, duration_days, due_date, nrc):
+    def insert_to_loans_and_disbursements_tables(self, amount, status, interest_rate, duration_days, due_date, nrc, business_id):
         """
-        Inserts a new loan into the loans table and records the disbursement.
+        Inserts a new loan into the loans table and records the disbursement for a specific business.
 
         Parameters:
         - amount: float
@@ -140,6 +144,7 @@ class Registration:
         - duration_days: int
         - due_date: str or datetime
         - nrc: str
+        - business_id: business identifier
 
         Returns:
         - str indicating success or failure.
@@ -149,7 +154,7 @@ class Registration:
             if not amount or float(amount) <= 0:
                 return "Invalid loan amount provided"
 
-            loan_id = self.update_loan_table(amount, status, interest_rate, duration_days, due_date, nrc)
+            loan_id = self.update_loan_table(amount, status, interest_rate, duration_days, due_date, nrc, business_id)
 
             # Check if loan_id is actually an ID or an error message
             if not loan_id or isinstance(loan_id, str) and not loan_id.isdigit():
@@ -160,6 +165,7 @@ class Registration:
             data = {
                 'loan_id': loan_id,
                 'amount': float(amount),
+                'business_id': business_id
             }
 
             response = self.supabase.table('disbursements').insert(data).execute()
@@ -179,8 +185,8 @@ class Registration:
             print(f"Error posting to disbursements: {str(e)}")
             return f"Error posting to disbursements: {str(e)}"
 
-    def register_borrower(self, name, gender, location, nrc, mobile, occupation, birth_date):
-        """registers the borrower to the database"""
+    def register_borrower(self, name, gender, location, nrc, mobile, occupation, birth_date, business_id):
+        """registers the borrower to the database for a specific business"""
         try:
             # Validate required fields
             if not name or not str(name).strip():
@@ -198,7 +204,8 @@ class Registration:
                 'nrc_number': str(nrc).strip(),
                 'mobile': str(mobile).strip() if mobile else None,
                 'occupation': str(occupation).strip() if occupation else None,
-                'birth_date': birth_date
+                'birth_date': birth_date,
+                'business_id': business_id
             }
 
             # Note: The original code inserts to "orders" table, keeping this as is
@@ -227,8 +234,8 @@ class Registration:
             print(f"Error registering borrower: {str(e)}")
             return False
 
-    def get_loan_id(self, borrower_id):
-        """returns the loan id of that specific borrower"""
+    def get_loan_id(self, borrower_id, business_id):
+        """returns the loan id of that specific borrower for a specific business"""
         try:
             if not borrower_id:
                 return None
@@ -238,6 +245,7 @@ class Registration:
                 .table('loans')
                 .select('id')
                 .eq('borrower_id', borrower_id)
+                .eq('business_id', business_id)
                 .execute()
             )
 
@@ -249,8 +257,8 @@ class Registration:
             print(f"Error getting loan ID for borrower {borrower_id}: {str(e)}")
             return None
 
-    def register_new_borrower(self, name, gender, location, nrc_number, mobile, occupation, birth_date, notes):
-        """Registers a new borrower who is not already in the database."""
+    def register_new_borrower(self, name, gender, location, nrc_number, mobile, occupation, birth_date, notes, business_id):
+        """Registers a new borrower who is not already in the database for a specific business."""
         try:
             # Validate required fields
             if not name or not str(name).strip():
@@ -262,7 +270,7 @@ class Registration:
                 return None
 
             # Check if borrower already exists
-            if self.check_borrower(nrc_number):
+            if self.check_borrower(nrc_number, business_id):
                 print(f"Error: Borrower with NRC {nrc_number} already exists")
                 return None
 
@@ -274,7 +282,8 @@ class Registration:
                 'mobile': str(mobile).strip() if mobile else None,
                 'occupation': str(occupation).strip() if occupation else None,
                 'birth_date': birth_date,
-                'notes': [str(notes)] if notes else []
+                'notes': [str(notes)] if notes else [],
+                'business_id': business_id
             }
 
             response = self.supabase.table('borrowers').insert(data).execute()
@@ -292,8 +301,8 @@ class Registration:
             print(f"Error registering borrower: {str(e)}")
             return None
 
-    def get_all_loans_for_borrower(self, borrower_id):
-        """Returns all loans for a specific borrower - utility method"""
+    def get_all_loans_for_borrower(self, borrower_id, business_id):
+        """Returns all loans for a specific borrower in a specific business - utility method"""
         try:
             if not borrower_id:
                 return []
@@ -303,6 +312,7 @@ class Registration:
                 .table('loans')
                 .select('*')
                 .eq('borrower_id', borrower_id)
+                .eq('business_id', business_id)
                 .execute()
             )
 

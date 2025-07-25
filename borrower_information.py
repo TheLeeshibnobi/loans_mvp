@@ -45,10 +45,21 @@ class BorrowerInformation:
         }
         return risk_card
 
-    def get_borrower_payment_history(self, loan_id):
+    def get_borrower_payment_history(self, loan_id, business_id):
         """
         determines the borrower status, number of on time payments, number of late payments, last payment
+        for a specific business
         """
+
+        if not business_id:
+            logger.error("business_id is required for payment history")
+            return {
+                'status': 'Standing Not Determined Yet',
+                'on_time_payments': 0,
+                'late_payments': 0,
+                'last_repayment_date': None
+            }
+
         try:
             if not loan_id:
                 return {
@@ -61,43 +72,58 @@ class BorrowerInformation:
             # Step 1: Get today's date in 'YYYY-MM-DD' format
             today_date = datetime.today().strftime("%Y-%m-%d")
 
-            # Step 2: Query the loans table, filtering for loans where 'due_date' is **before** today
+            # Step 2: Query the loans table for the specific business, filtering for loans where 'due_date' is **before** today
             response = (
                 self.supabase
                 .table('loans')
                 .select('id', 'due_date')
                 .eq('id', loan_id)
+                .eq('business_id', business_id)
                 .lt('due_date', today_date)  # Filters only loans where due_date is in the past
                 .execute()
             )
 
             # Check for database errors
             if hasattr(response, 'error') and response.error:
-                logger.error(f"Database error in get_borrower_payment_history: {response.error}")
-                return "Standing Not Determined Yet"
+                logger.error(
+                    f"Database error in get_borrower_payment_history for business {business_id}: {response.error}")
+                return {
+                    'status': 'Standing Not Determined Yet',
+                    'on_time_payments': 0,
+                    'late_payments': 0,
+                    'last_repayment_date': None
+                }
 
             # Step 3: Filter loans to include only those where the due date has passed
             due_loans = response.data or []
             total_due_loans = len(due_loans)
 
-            # Step 4: Check how many due loans were repaid on time
+            # Step 4: Check how many due loans were repaid on time for the specific business
             repayment_response = (
                 self.supabase
                 .table('repayments')
                 .select('loan_id', 'repayment_date')
                 .eq('loan_id', loan_id)
+                .eq('business_id', business_id)
                 .execute()
             )
 
             if hasattr(repayment_response, 'error') and repayment_response.error:
-                logger.error(f"Database error in repayments query: {repayment_response.error}")
-                return "Standing Not Determined Yet"
+                logger.error(
+                    f"Database error in repayments query for business {business_id}: {repayment_response.error}")
+                return {
+                    'status': 'Standing Not Determined Yet',
+                    'on_time_payments': 0,
+                    'late_payments': 0,
+                    'last_repayment_date': None
+                }
 
             repayment_data = repayment_response.data or []
             on_time_repayments = len(repayment_data)
 
             # Step 5: Avoid division errors and handle edge cases
             if total_due_loans == 0:
+                logger.info(f"No due loans found for loan_id {loan_id} in business {business_id}")
                 return {
                     'status': 'Standing Not Determined Yet',
                     'on_time_payments': on_time_repayments,
@@ -118,9 +144,11 @@ class BorrowerInformation:
                         'late_payments': max(total_due_loans - on_time_repayments, 0),
                         'last_repayment_date': repayment_data[-1]['repayment_date'] if repayment_data else None
                     }
+                    logger.info(f"Payment history determined for loan_id {loan_id} in business {business_id}: {status}")
                     return payment_history
 
             # Default case - bad standing
+            logger.info(f"Bad standing determined for loan_id {loan_id} in business {business_id}")
             return {
                 'status': 'bad standing',
                 'on_time_payments': on_time_repayments,
@@ -129,7 +157,9 @@ class BorrowerInformation:
             }
 
         except Exception as e:
-            logger.error(f"Error in get_borrower_payment_history: {e}")
+            logger.error(f"Error in get_borrower_payment_history for loan_id {loan_id} in business {business_id}: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 'status': 'Standing Not Determined Yet',
                 'on_time_payments': 0,
@@ -137,8 +167,17 @@ class BorrowerInformation:
                 'last_repayment_date': None
             }
 
-    def total_outstanding_debts(self, borrower_id):
-        """returns a dict required for the total outstanding debts information of that borrower"""
+    def total_outstanding_debts(self, borrower_id, business_id):
+        """returns a dict required for the total outstanding debts information of that borrower for a specific business"""
+
+        if not business_id:
+            logger.error("business_id is required for outstanding debts calculation")
+            return {
+                'total_outstanding': 0,
+                'active_loans': 0,
+                'earliest_date': None
+            }
+
         try:
             if not borrower_id:
                 return {
@@ -152,12 +191,13 @@ class BorrowerInformation:
                 .table('loans')
                 .select('amount', 'status', 'due_date')
                 .eq('borrower_id', borrower_id)
+                .eq('business_id', business_id)
                 .neq('status', 'Completed')
                 .execute()
             )
 
             if hasattr(response, 'error') and response.error:
-                logger.error(f"Database error in total_outstanding_debts: {response.error}")
+                logger.error(f"Database error in total_outstanding_debts for business {business_id}: {response.error}")
                 return {
                     'total_outstanding': 0,
                     'active_loans': 0,
@@ -167,6 +207,7 @@ class BorrowerInformation:
             loan_data = response.data or []
 
             if not loan_data:
+                logger.info(f"No outstanding loans found for borrower {borrower_id} in business {business_id}")
                 return {
                     'total_outstanding': 0,
                     'active_loans': 0,
@@ -212,18 +253,32 @@ class BorrowerInformation:
                 'earliest_date': earliest_date
             }
 
+            logger.info(
+                f"Outstanding debts calculated for borrower {borrower_id} in business {business_id}: {total_outstanding}")
             return outstanding_debts
 
         except Exception as e:
-            logger.error(f"Error in total_outstanding_debts: {e}")
+            logger.error(f"Error in total_outstanding_debts for borrower {borrower_id} in business {business_id}: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 'total_outstanding': 0,
                 'active_loans': 0,
                 'earliest_date': None
             }
 
-    def default_risk_assessment(self, borrower_id):
-        """Returns information needed for the default risk card on the borrower's information."""
+    def default_risk_assessment(self, borrower_id, business_id):
+        """Returns information needed for the default risk card on the borrower's information for a specific business."""
+
+        if not business_id:
+            logger.error("business_id is required for default risk assessment")
+            return {
+                'risk_level': 'unknown',
+                'risk_score': 0,
+                'missed_payments': 0,
+                'customer_since': None
+            }
+
         try:
             if not borrower_id:
                 return {
@@ -238,11 +293,12 @@ class BorrowerInformation:
                 .table('loans')
                 .select('status', 'created_at')
                 .eq('borrower_id', borrower_id)
+                .eq('business_id', business_id)
                 .execute()
             )
 
             if hasattr(response, 'error') and response.error:
-                logger.error(f"Database error in default_risk_assessment: {response.error}")
+                logger.error(f"Database error in default_risk_assessment for business {business_id}: {response.error}")
                 return {
                     'risk_level': 'unknown',
                     'risk_score': 0,
@@ -253,6 +309,7 @@ class BorrowerInformation:
             data = response.data or []
 
             if not data:
+                logger.info(f"No loans found for borrower {borrower_id} in business {business_id}")
                 return {
                     'risk_level': 'no_risk',
                     'risk_score': 100,
@@ -300,10 +357,14 @@ class BorrowerInformation:
                 'customer_since': str(earliest_date) if earliest_date else None
             }
 
+            logger.info(
+                f"Risk assessment completed for borrower {borrower_id} in business {business_id}: {risk_level} ({risk_score})")
             return default_assessment
 
         except Exception as e:
-            logger.error(f"Error in default_risk_assessment: {e}")
+            logger.error(f"Error in default_risk_assessment for borrower {borrower_id} in business {business_id}: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 'risk_level': 'unknown',
                 'risk_score': 0,
@@ -311,8 +372,19 @@ class BorrowerInformation:
                 'customer_since': None
             }
 
-    def account_status(self, borrower_id):
-        """Returns account summary for the borrower's information card."""
+    def account_status(self, borrower_id, business_id):
+        """Returns account summary for the borrower's information card for a specific business."""
+
+        if not business_id:
+            logger.error("business_id is required for account status")
+            return {
+                "total_loaned": 0,
+                "total_repaid": 0,
+                "credit_limit": 0,
+                "total_income_interest": 0,
+                "last_contract": None
+            }
+
         try:
             if not borrower_id:
                 return {
@@ -323,17 +395,18 @@ class BorrowerInformation:
                     "last_contract": None
                 }
 
-            # Fetch loans
+            # Fetch loans for the specific business
             loan_response = (
                 self.supabase
                 .table('loans')
                 .select('id', 'amount', 'created_at')
                 .eq('borrower_id', borrower_id)
+                .eq('business_id', business_id)
                 .execute()
             )
 
             if hasattr(loan_response, 'error') and loan_response.error:
-                logger.error(f"Database error in account_status: {loan_response.error}")
+                logger.error(f"Database error in account_status for business {business_id}: {loan_response.error}")
                 return {
                     "total_loaned": 0,
                     "total_repaid": 0,
@@ -345,6 +418,7 @@ class BorrowerInformation:
             loan_data = loan_response.data or []
 
             if not loan_data:
+                logger.info(f"No loans found for borrower {borrower_id} in business {business_id}")
                 return {
                     "total_loaned": 0,
                     "total_repaid": 0,
@@ -374,7 +448,7 @@ class BorrowerInformation:
                 except (ValueError, TypeError):
                     continue
 
-            # Get repayments in one go
+            # Get repayments in one go for the specific business
             loan_ids = [info['id'] for info in loan_data if info.get('id')]
 
             if not loan_ids:
@@ -391,11 +465,13 @@ class BorrowerInformation:
                 .table('repayments')
                 .select('amount', 'loan_id')
                 .in_('loan_id', loan_ids)
+                .eq('business_id', business_id)
                 .execute()
             )
 
             if hasattr(repayment_response, 'error') and repayment_response.error:
-                logger.error(f"Database error in repayments query: {repayment_response.error}")
+                logger.error(
+                    f"Database error in repayments query for business {business_id}: {repayment_response.error}")
                 total_repaid = 0
             else:
                 repayment_data = repayment_response.data or []
@@ -416,10 +492,14 @@ class BorrowerInformation:
                 "last_contract": str(latest_date) if latest_date else None
             }
 
+            logger.info(
+                f"Account status calculated for borrower {borrower_id} in business {business_id}: loaned={total_loaned}, repaid={total_repaid}")
             return credit_status
 
         except Exception as e:
-            logger.error(f"Error in account_status: {e}")
+            logger.error(f"Error in account_status for borrower {borrower_id} in business {business_id}: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "total_loaned": 0,
                 "total_repaid": 0,
@@ -428,8 +508,13 @@ class BorrowerInformation:
                 "last_contract": None
             }
 
-    def recent_borrower_history(self, borrower_id):
-        """Returns a list of dictionaries representing the borrower's 3 most recent loans."""
+    def recent_borrower_history(self, borrower_id, business_id):
+        """Returns a list of dictionaries representing the borrower's 3 most recent loans for a specific business."""
+
+        if not business_id:
+            logger.error("business_id is required for recent borrower history")
+            return []
+
         try:
             if not borrower_id:
                 return []
@@ -439,30 +524,33 @@ class BorrowerInformation:
                 .table('loans')
                 .select('*')
                 .eq('borrower_id', borrower_id)
+                .eq('business_id', business_id)
                 .order('created_at', desc=True)
                 .limit(3)
                 .execute()
             )
 
             if hasattr(response, 'error') and response.error:
-                logger.error(f"Database error in recent_borrower_history: {response.error}")
+                logger.error(f"Database error in recent_borrower_history for business {business_id}: {response.error}")
                 return []
 
             raw_data = response.data or []
 
             if not raw_data:
+                logger.info(f"No recent loan history found for borrower {borrower_id} in business {business_id}")
                 return []
 
             recent_history = []
 
             for data in raw_data:
                 try:
-                    # Fetch and sum repayment amounts
+                    # Fetch and sum repayment amounts for the specific business
                     repayment_response = (
                         self.supabase
                         .table('repayments')
                         .select('amount')
                         .eq('loan_id', data.get('id'))
+                        .eq('business_id', business_id)
                         .execute()
                     )
 
@@ -523,29 +611,41 @@ class BorrowerInformation:
                     recent_history.append(loan_info)
 
                 except Exception as e:
-                    logger.error(f"Error processing loan data: {e}")
+                    logger.error(f"Error processing loan data for business {business_id}: {e}")
                     continue
 
+            logger.info(
+                f"Retrieved {len(recent_history)} recent loans for borrower {borrower_id} in business {business_id}")
             return recent_history
 
         except Exception as e:
-            logger.error(f"Error in recent_borrower_history: {e}")
+            logger.error(f"Error in recent_borrower_history for borrower {borrower_id} in business {business_id}: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return []
 
-    def get_borrowers(self):
-        """Returns a list of borrowers from the database."""
+    def get_borrowers(self, business_id):
+        """Returns a list of borrowers from the database for a specific business."""
+
+        if not business_id:
+            logger.error("business_id is required for getting borrowers")
+            return []
 
         try:
             response = (
                 self.supabase
                 .table('borrowers')
                 .select('*')
+                .eq('business_id', business_id)
                 .execute()
             )
 
             borrowers = response.data if response.data else []
+            logger.info(f"Retrieved {len(borrowers)} borrowers for business {business_id}")
             return borrowers
 
         except Exception as e:
-            print(f'Exception: {e}')
+            logger.error(f'Exception getting borrowers for business {business_id}: {e}')
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return []

@@ -9,6 +9,8 @@
                 <div class="col-md-8">
                     <h1 class="card-title mb-2">{{ borrower_data.name or 'John Smith' }}</h1>
                     <p class="card-text mb-0">NRC: {{ borrower_data.nrc_number or 'BRW-2024-001' }}</p>
+                    <p class="card-text mb-0">Phone: {{ borrower_data.mobile or 'BRW-2024-001' }}</p>
+                    <p class="card-text mb-0">Location: {{ borrower_data.location or 'BRW-2024-001' }}</p>
                 </div>
                 <div class="col-md-4 text-md-end">
                     <button class="btn btn-light me-2" onclick="window.print()">

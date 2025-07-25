@@ -13,20 +13,32 @@ class Settings:
 
         self.supabase: Client = create_client(url, service_role_key)
 
-    def save_secret_key(self, key: str):
-        """Saves a secret key to the database with current UTC timestamp."""
+    def save_secret_key(self, key: str, business_id):
+        """Saves a secret key to the database with current UTC timestamp for a specific business."""
         try:
             # Validate input
             if not key or not key.strip():
                 return {"success": False, "message": "Secret key cannot be empty."}
 
-            # Check if key already exists to prevent duplicates
-            existing = self.supabase.table("secret_keys").select("key").eq("key", key.strip()).execute()
+            if not business_id:
+                return {"success": False, "message": "Business ID is required."}
+
+            # Check if key already exists for this business to prevent duplicates
+            existing = (
+                self.supabase
+                .table("secret_keys")
+                .select("key")
+                .eq("key", key.strip())
+                .eq("business_id", business_id)
+                .execute()
+            )
+
             if existing.data and len(existing.data) > 0:
-                return {"success": False, "message": "Secret key already exists."}
+                return {"success": False, "message": "Secret key already exists for this business."}
 
             data = {
                 "key": key.strip(),
+                "business_id": business_id,
                 "created_at": datetime.datetime.now(datetime.UTC).isoformat()
             }
 
@@ -49,8 +61,8 @@ class Settings:
             print(f"Error in save_secret_key: {str(e)}")
             return {"success": False, "message": f"Unexpected error: {str(e)}"}
 
-    def delete_expired_keys(self, hours: int = 24):
-        """Deletes secret keys older than the specified number of hours (default: 24)."""
+    def delete_expired_keys(self, business_id, hours: int = 24):
+        """Deletes secret keys older than the specified number of hours (default: 24) for a specific business."""
         try:
             # Validate input
             if hours <= 0:
@@ -58,8 +70,15 @@ class Settings:
 
             cutoff = (datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=hours)).isoformat()
 
-            # First, check if there are any keys to delete
-            check_response = self.supabase.table("secret_keys").select("id").lt("created_at", cutoff).execute()
+            # First, check if there are any keys to delete for this business
+            check_response = (
+                self.supabase
+                .table("secret_keys")
+                .select("id")
+                .eq("business_id", business_id)
+                .lt("created_at", cutoff)
+                .execute()
+            )
 
             if not check_response.data or len(check_response.data) == 0:
                 return {"success": True, "message": "No expired keys found to delete.", "deleted_count": 0}
@@ -67,7 +86,14 @@ class Settings:
             keys_to_delete = len(check_response.data)
 
             # Proceed with deletion
-            response = self.supabase.table("secret_keys").delete().lt("created_at", cutoff).execute()
+            response = (
+                self.supabase
+                .table("secret_keys")
+                .delete()
+                .eq("business_id", business_id)
+                .lt("created_at", cutoff)
+                .execute()
+            )
 
             if hasattr(response, 'error') and response.error:
                 print(f"Supabase error in delete: {response.error}")
@@ -85,10 +111,17 @@ class Settings:
             print(f"Error in delete_expired_keys: {str(e)}")
             return {"success": False, "message": f"Unexpected error: {str(e)}"}
 
-    def get_all_secret_keys(self):
-        """Retrieves all secret keys from the database (for admin purposes)."""
+    def get_all_secret_keys(self, business_id):
+        """Retrieves all secret keys from the database for a specific business (for admin purposes)."""
         try:
-            response = self.supabase.table("secret_keys").select("*").order("created_at", desc=True).execute()
+            response = (
+                self.supabase
+                .table("secret_keys")
+                .select("*")
+                .eq("business_id", business_id)
+                .order("created_at", desc=True)
+                .execute()
+            )
 
             if hasattr(response, 'error') and response.error:
                 print(f"Supabase error: {response.error}")
@@ -107,10 +140,16 @@ class Settings:
             print(f"Error in get_all_secret_keys: {str(e)}")
             return {"success": False, "message": f"Unexpected error: {str(e)}"}
 
-    def count_secret_keys(self):
-        """Returns the count of secret keys in the database."""
+    def count_secret_keys(self, business_id):
+        """Returns the count of secret keys in the database for a specific business."""
         try:
-            response = self.supabase.table("secret_keys").select("id", count="exact").execute()
+            response = (
+                self.supabase
+                .table("secret_keys")
+                .select("id", count="exact")
+                .eq("business_id", business_id)
+                .execute()
+            )
 
             if hasattr(response, 'error') and response.error:
                 print(f"Supabase error: {response.error}")
@@ -128,21 +167,35 @@ class Settings:
             print(f"Error in count_secret_keys: {str(e)}")
             return {"success": False, "message": f"Unexpected error: {str(e)}"}
 
-    def delete_secret_key_by_id(self, key_id: int):
-        """Deletes a specific secret key by its ID."""
+    def delete_secret_key_by_id(self, key_id: int, business_id):
+        """Deletes a specific secret key by its ID for a specific business."""
         try:
             # Validate input
             if not key_id or not isinstance(key_id, (int, str)):
                 return {"success": False, "message": "Invalid key ID provided."}
 
-            # Check if the key exists
-            existing = self.supabase.table("secret_keys").select("id").eq("id", key_id).execute()
+            # Check if the key exists for this business
+            existing = (
+                self.supabase
+                .table("secret_keys")
+                .select("id")
+                .eq("id", key_id)
+                .eq("business_id", business_id)
+                .execute()
+            )
 
             if not existing.data or len(existing.data) == 0:
-                return {"success": False, "message": "Secret key not found."}
+                return {"success": False, "message": "Secret key not found for the specified business."}
 
             # Delete the key
-            response = self.supabase.table("secret_keys").delete().eq("id", key_id).execute()
+            response = (
+                self.supabase
+                .table("secret_keys")
+                .delete()
+                .eq("id", key_id)
+                .eq("business_id", business_id)
+                .execute()
+            )
 
             if hasattr(response, 'error') and response.error:
                 print(f"Supabase error in delete: {response.error}")
@@ -157,21 +210,21 @@ class Settings:
             print(f"Error in delete_secret_key_by_id: {str(e)}")
             return {"success": False, "message": f"Unexpected error: {str(e)}"}
 
-    def cleanup_database(self, hours: int = 24):
-        """Comprehensive cleanup method that removes expired keys and returns cleanup statistics."""
+    def cleanup_database(self, business_id, hours: int = 24):
+        """Comprehensive cleanup method that removes expired keys for a specific business and returns cleanup statistics."""
         try:
             # Get count before cleanup
-            before_count = self.count_secret_keys()
+            before_count = self.count_secret_keys(business_id)
             if not before_count["success"]:
                 return before_count
 
             # Perform cleanup
-            cleanup_result = self.delete_expired_keys(hours)
+            cleanup_result = self.delete_expired_keys(business_id, hours)
             if not cleanup_result["success"]:
                 return cleanup_result
 
             # Get count after cleanup
-            after_count = self.count_secret_keys()
+            after_count = self.count_secret_keys(business_id)
             if not after_count["success"]:
                 return after_count
 

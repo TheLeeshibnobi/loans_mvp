@@ -3,6 +3,8 @@ from datetime import date, timedelta, datetime, UTC
 from dotenv import load_dotenv
 import os
 
+# Load environment variables
+load_dotenv()
 
 class OverviewMetrics:
     """Contains metrics for the overview dashboard"""
@@ -77,52 +79,84 @@ class OverviewMetrics:
 
     def total_money_in(self, business_id):
         """Returns the total of capital in plus loan repayment amount."""
-        repayments_response = (
-            self.supabase
-            .table('repayments')
-            .select('amount')
-            .eq('business_id', business_id)
-            .execute()
-        )
-        injections_response = (
-            self.supabase
-            .table('injections')
-            .select('amount')
-            .eq('business_id', business_id)
-            .execute()
-        )
+        try:
+            repayments_response = (
+                self.supabase
+                .table('repayments')
+                .select('amount')
+                .eq('business_id', business_id)
+                .execute()
+            )
+            injections_response = (
+                self.supabase
+                .table('injections')
+                .select('amount')
+                .eq('business_id', business_id)
+                .execute()
+            )
 
-        repayments_total = sum(item['amount'] for item in repayments_response.data)
-        injections_total = sum(item['amount'] for item in injections_response.data)
+            repayments_total = sum(item['amount'] for item in (repayments_response.data or []))
+            injections_total = sum(item['amount'] for item in (injections_response.data or []))
 
-        return repayments_total + injections_total
+            return repayments_total + injections_total
+        except Exception as e:
+            print(f"Error calculating total money in: {e}")
+            return 0
 
     def total_money_out(self, business_id):
         """Returns the total of money disbursed and loans given out."""
-        disbursements_response = (
-            self.supabase
-            .table('disbursements')
-            .select('amount')
-            .eq('business_id', business_id)
-            .execute()
-        )
-        loans_response = (
-            self.supabase
-            .table('loans')
-            .select('amount')
-            .eq('business_id', business_id)
-            .execute()
-        )
+        try:
+            disbursements_response = (
+                self.supabase
+                .table('disbursements')
+                .select('amount')
+                .eq('business_id', business_id)
+                .execute()
+            )
+            loans_response = (
+                self.supabase
+                .table('loans')
+                .select('amount')
+                .eq('business_id', business_id)
+                .execute()
+            )
 
-        disbursements_total = sum(item['amount'] for item in disbursements_response.data)
-        loans_total = sum(item['amount'] for item in loans_response.data)
+            disbursements_total = sum(item['amount'] for item in (disbursements_response.data or []))
+            loans_total = sum(item['amount'] for item in (loans_response.data or []))
 
-        return disbursements_total + loans_total
+            return disbursements_total + loans_total
+        except Exception as e:
+            print(f"Error calculating total money out: {e}")
+            return 0
+
+    def total_overall_expenses(self, business_id):
+        """Returns the total amount of expenses for the given business_id."""
+        try:
+            response = (
+                self.supabase
+                .table('expenses')
+                .select('amount')
+                .eq('business_id', business_id)
+                .execute()
+            )
+
+            total = sum(float(item['amount']) for item in response.data or [])
+            return total
+
+        except Exception as e:
+            print(f"Exception in total_overall_expenses: {e}")
+            return 0.0
 
     def available_cash(self, business_id):
-        """returns the total available cash in the system but adding the net equity and net loans"""
-        available_cash = self.total_money_in(business_id) - self.total_money_out(business_id)
-        return available_cash
+        """Returns total available cash = (repayments + capital) - (loans + disbursements + expenses)"""
+        try:
+            money_in = self.total_money_in(business_id)
+            money_out = self.total_money_out(business_id)
+            expenses = self.total_overall_expenses(business_id)
+            return round(money_in - money_out - expenses, 2)
+        except Exception as e:
+            print(f"Error calculating available cash: {e}")
+            return 0.0
 
     def get_period(self, days):
         """Fixed to handle both string and numeric period inputs"""
@@ -408,13 +442,38 @@ class OverviewMetrics:
             print(f"Error calculating total discounts given: {e}")
             return 0
 
+    def total_period_expenses(self, days, business_id):
+        """returns the total expenses for a given period for a given business_id"""
+        try:
+            period, today = self.get_period(days)
+            start_date = period.isoformat()
+            end_date = today.isoformat()
+
+            # Fetch total expenses during the period
+            response = (
+                self.supabase.table('expenses')
+                .select('amount')
+                .eq('business_id', business_id)
+                .gte('created_at', start_date)
+                .lte('created_at', end_date)
+                .execute()
+            )
+            # Safely sum expenses, treating None as 0
+            if response.data and len(response.data) > 0:
+                total_expense_cost = sum(item['amount'] or 0 for item in response.data)
+                return round(total_expense_cost, 2)
+            return 0
+        except Exception as e:
+            print(f"Error calculating total period expenses: {e}")
+            return 0
+
     def recent_borrowers(self, business_id):
         """Returns a dictionary of 4 recent borrowers including NRC number, issue date, and due date"""
         try:
             response = (
                 self.supabase
                 .table('loans')
-                .select('id', 'borrower_id', 'amount', 'status', 'created_at', 'due_date')
+                .select('id, borrower_id, amount, status, created_at, due_date')
                 .eq('business_id', business_id)
                 .order('id', desc=True)
                 .limit(4)
@@ -431,7 +490,7 @@ class OverviewMetrics:
                     borrower_info = (
                         self.supabase
                         .table('borrowers')
-                        .select('name', 'nrc_number')
+                        .select('name, nrc_number')
                         .eq('id', loan['borrower_id'])
                         .eq('business_id', business_id)
                         .execute()
@@ -448,7 +507,7 @@ class OverviewMetrics:
                     file_info = (
                         self.supabase
                         .table('files')
-                        .select('docs', 'photos')
+                        .select('docs, photos')
                         .eq('loan_id', loan['id'])
                         .eq('business_id', business_id)
                         .limit(1)
@@ -640,7 +699,7 @@ class OverviewMetrics:
             response = (
                 self.supabase
                 .table('loans')
-                .select('borrower_id', 'amount', 'interest_rate', 'due_date')
+                .select('borrower_id, amount, interest_rate, due_date')
                 .eq('business_id', business_id)
                 .gt('due_date', start_date)
                 .lt('due_date', end_date)

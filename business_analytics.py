@@ -64,9 +64,10 @@ class BusinessAnalytics:
             print(f"Error applying gender filter: {str(e)}")
             return query
 
-    def get_borrower_ids(self, gender):
+    def get_borrower_ids(self, gender, business_id):
         try:
             query = self.supabase.table("borrowers").select("id")
+            query = query.eq("business_id", business_id)
             query = self.apply_gender_filter(query, gender)
             response = query.execute()
 
@@ -78,12 +79,13 @@ class BusinessAnalytics:
             print(f"Error fetching borrower IDs: {str(e)}")
             return []
 
-    def get_loans(self, borrower_ids, start, end, filters=None):
+    def get_loans(self, borrower_ids, start, end, business_id, filters=None):
         try:
             if not borrower_ids:
                 return []
 
             query = self.supabase.table("loans").select("*")
+            query = query.eq("business_id", business_id)
             query = query.in_("borrower_id", borrower_ids)
             query = query.gte("created_at", start).lte("created_at", end)
 
@@ -103,30 +105,30 @@ class BusinessAnalytics:
             print(f"Error fetching loans: {str(e)}")
             return []
 
-    def total_loans_issued(self, gender, month, year):
+    def total_loans_issued(self, gender, month, year, business_id):
         try:
             year = self.validate_year(year)
             start, end = self.month_map(year)[month]
-            borrower_ids = self.get_borrower_ids(gender)
+            borrower_ids = self.get_borrower_ids(gender, business_id)
             if not borrower_ids:
                 return 0
 
-            loans = self.get_loans(borrower_ids, start, end)
+            loans = self.get_loans(borrower_ids, start, end, business_id)
             return len(loans) if loans else 0
         except Exception as e:
             print(f"Error calculating total loans issued: {str(e)}")
             return 0
 
-    def total_revenue_generated(self, gender, month, year):
+    def total_revenue_generated(self, gender, month, year, business_id):
         try:
             year = self.validate_year(year)
             start, end = self.month_map(year)[month]
-            borrower_ids = self.get_borrower_ids(gender)
+            borrower_ids = self.get_borrower_ids(gender, business_id)
             if not borrower_ids:
                 return 0
 
             # Step 1: Get loan IDs
-            loans = self.get_loans(borrower_ids, start, end)
+            loans = self.get_loans(borrower_ids, start, end, business_id)
             if not loans:
                 return 0
 
@@ -139,6 +141,7 @@ class BusinessAnalytics:
                 self.supabase
                 .table("repayments")
                 .select("amount")
+                .eq("business_id", business_id)
                 .in_("loan_id", loan_ids)
             )
             repayment_response = repayment_query.execute()
@@ -158,20 +161,20 @@ class BusinessAnalytics:
             print(f"Error calculating total revenue: {str(e)}")
             return 0
 
-    def default_rate(self, gender, month, year):
+    def default_rate(self, gender, month, year, business_id):
         try:
             year = self.validate_year(year)
             start, end = self.month_map(year)[month]
-            borrower_ids = self.get_borrower_ids(gender)
+            borrower_ids = self.get_borrower_ids(gender, business_id)
             if not borrower_ids:
                 return "0%"
 
-            loans = self.get_loans(borrower_ids, start, end)
+            loans = self.get_loans(borrower_ids, start, end, business_id)
             if not loans:
                 return "0%"
 
             defaults = self.get_loans(
-                borrower_ids, start, end,
+                borrower_ids, start, end, business_id,
                 filters={"status": ["Default", "Overdue"]}
             )
 
@@ -184,16 +187,16 @@ class BusinessAnalytics:
             print(f"Error calculating default rate: {str(e)}")
             return "0%"
 
-    def active_portfolio(self, gender, month, year):
+    def active_portfolio(self, gender, month, year, business_id):
         try:
             year = self.validate_year(year)
             start, end = self.month_map(year)[month]
-            borrower_ids = self.get_borrower_ids(gender)
+            borrower_ids = self.get_borrower_ids(gender, business_id)
             if not borrower_ids:
                 return 0
 
             active_loans = self.get_loans(
-                borrower_ids, start, end,
+                borrower_ids, start, end, business_id,
                 filters={"status": "Active"}
             )
 
@@ -212,11 +215,11 @@ class BusinessAnalytics:
             print(f"Error calculating active portfolio: {str(e)}")
             return 0
 
-    def loan_reason_trend_data(self, gender, year, loan_reason):
+    def loan_reason_trend_data(self, gender, year, loan_reason, business_id):
         """Returns the number of loans for a specific loan_reason across all months in a year"""
         try:
             year = self.validate_year(year)
-            borrower_ids = self.get_borrower_ids(gender)
+            borrower_ids = self.get_borrower_ids(gender, business_id)
             if not borrower_ids:
                 return {}
 
@@ -232,7 +235,7 @@ class BusinessAnalytics:
                 try:
                     start, end = self.month_map(year)[month_name]
                     # Get all loans within that month
-                    all_loans = self.get_loans(borrower_ids, start, end)
+                    all_loans = self.get_loans(borrower_ids, start, end, business_id)
 
                     # Count loans for the specific reason
                     reason_count = 0
@@ -251,11 +254,11 @@ class BusinessAnalytics:
             print(f"Error generating loan reason trend data: {str(e)}")
             return {}
 
-    def interest_vs_transaction_costs_data(self, gender, year):
+    def interest_vs_transaction_costs_data(self, gender, year, business_id):
         """returns data of total_interest v.s total_transaction_costs for a certain period"""
         try:
             year = self.validate_year(year)
-            borrower_ids = self.get_borrower_ids(gender)
+            borrower_ids = self.get_borrower_ids(gender, business_id)
             if not borrower_ids:
                 return {}
 
@@ -271,7 +274,7 @@ class BusinessAnalytics:
                 try:
                     start, end = self.month_map(year)[month_name]
                     # Get all loans within that month
-                    all_loans = self.get_loans(borrower_ids, start, end)
+                    all_loans = self.get_loans(borrower_ids, start, end, business_id)
 
                     # Calculate total interest and transaction costs for the month
                     total_interest = 0
@@ -314,11 +317,11 @@ class BusinessAnalytics:
             print(f"Error generating interest vs transaction costs data: {str(e)}")
             return {}
 
-    def loan_repayments_vs_discount(self, gender, year):
+    def loan_repayments_vs_discount(self, gender, year, business_id):
         """Returns data of total_repaid_loans vs total_discounts for a certain period"""
         try:
             year = self.validate_year(year)
-            borrower_ids = self.get_borrower_ids(gender)
+            borrower_ids = self.get_borrower_ids(gender, business_id)
             if not borrower_ids:
                 return {}
 
@@ -334,9 +337,10 @@ class BusinessAnalytics:
                 try:
                     start, end = self.month_map(year)[month_name]
 
-                    # First, get all loan_ids for the specified borrower_ids
+                    # First, get all loan_ids for the specified borrower_ids and business_id
                     loans_response = self.supabase.table('loans') \
                         .select('id') \
+                        .eq('business_id', business_id) \
                         .in_('borrower_id', borrower_ids) \
                         .execute()
 
@@ -358,6 +362,7 @@ class BusinessAnalytics:
                     # Query the repayments table using the correct column names
                     response = self.supabase.table('repayments') \
                         .select('amount, discount') \
+                        .eq('business_id', business_id) \
                         .in_('loan_id', loan_ids) \
                         .gte('repayment_date', start) \
                         .lte('repayment_date', end) \
@@ -396,10 +401,10 @@ class BusinessAnalytics:
             print(f"Error generating loan repayments vs discount data: {str(e)}")
             return {}
 
-    def loan_reason_trend_chart(self, gender, year, loan_reason):
+    def loan_reason_trend_chart(self, gender, year, loan_reason, business_id):
         """Returns an HTML string of a line chart showing trend for a specific loan reason across months"""
         try:
-            trend_data = self.loan_reason_trend_data(gender, year, loan_reason)
+            trend_data = self.loan_reason_trend_data(gender, year, loan_reason, business_id)
 
             # Check if data is empty
             if not trend_data:
@@ -458,10 +463,10 @@ class BusinessAnalytics:
             print(error_msg)
             return f"<div>{error_msg}</div>"
 
-    def interest_vs_transaction_costs_chart(self, gender, year):
+    def interest_vs_transaction_costs_chart(self, gender, year, business_id):
         """Returns an HTML string of a clustered bar chart comparing interest earned vs transaction costs"""
         try:
-            chart_data = self.interest_vs_transaction_costs_data(gender, year)
+            chart_data = self.interest_vs_transaction_costs_data(gender, year, business_id)
 
             # Check if data is empty
             if not chart_data:
@@ -548,10 +553,10 @@ class BusinessAnalytics:
             print(error_msg)
             return f"<div>{error_msg}</div>"
 
-    def loan_repayments_vs_discount_chart(self, gender, year):
+    def loan_repayments_vs_discount_chart(self, gender, year, business_id):
         """Returns an HTML string of a clustered bar chart comparing loan repayments vs discounts given"""
         try:
-            chart_data = self.loan_repayments_vs_discount(gender, year)
+            chart_data = self.loan_repayments_vs_discount(gender, year, business_id)
 
             # Check if data is empty
             if not chart_data:

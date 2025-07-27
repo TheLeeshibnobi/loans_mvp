@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Successfully Subscribed - Inxource Loan Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 60px 40px;
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .brand-logo {
+            color: #fff;
+            font-size: 32px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .success-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            box-shadow: 0 10px 20px rgba(76, 175, 80, 0.3);
+        }
+
+        .checkmark {
+            color: white;
+            font-size: 50px;
+            font-weight: bold;
+        }
+
+        .success-title {
+            color: #fff;
+            font-size: 36px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .success-message {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .email-info {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 30px 0;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .email-info p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .steps-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0 40px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .steps-title {
+            color: #fff;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 25px;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            margin-bottom: 20px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+            text-align: left;
+        }
+
+        .step:last-child {
+            margin-bottom: 0;
+        }
+
+        .step-number {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .login-button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+            border: none;
+            padding: 18px 40px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 8px 16px rgba(255, 107, 107, 0.3);
+            letter-spacing: 1px;
+        }
+
+        .login-button:hover {
+            background: linear-gradient(45deg, #ee5a52, #ff6b6b);
+            box-shadow: 0 10px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 40px 25px;
+            }
+
+            .success-title {
+                font-size: 28px;
+            }
+
+            .success-message {
+                font-size: 16px;
+            }
+
+            .brand-logo {
+                font-size: 24px;
+            }
+
+            .steps-container {
+                padding: 20px;
+            }
+
+            .step {
+                font-size: 14px;
+            }
+
+            .login-button {
+                padding: 15px 30px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="brand-logo">inXource</div>
+
+        <div class="success-icon">
+            <span class="checkmark">✓</span>
+        </div>
+
+        <h1 class="success-title">Successfully Subscribed!</h1>
+
+        <p class="success-message">
+            Congratulations! You have successfully subscribed to the inXource Loan Dashboard.
+            Your account has been created and is ready to use.
+        </p>
+
+        <div class="email-info">
+            <p><strong>📧 Check your email!</strong> We've sent you a confirmation email with your account details and login credentials.</p>
+        </div>
+
+        <div class="steps-container">
+            <h3 class="steps-title">Next Steps</h3>
+
+            <div class="step">
+                <div class="step-number">1</div>
+                <div>Return to the business login page</div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">2</div>
+                <div>Login with your newly created account credentials</div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">3</div>
+                <div>Access your personalized loan dashboard and start managing your finances</div>
+            </div>
+        </div>
+
+        <a href="{{ url_for('business_login') }}" class="login-button" onclick="redirectToLogin()">
+            Go to Business Login
+        </a>
+    </div>
+
+    <script>
+        function redirectToLogin() {
+            // Replace this URL with your actual business login page
+            window.location.href = '/business-login';
+            // For demo purposes, showing an alert
+            alert('Redirecting to Business Login Page...\n\nIn a real implementation, this would navigate to your login page.');
+        }
+    </script>
+</body>
+</html>

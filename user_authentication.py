@@ -147,7 +147,8 @@ class UserAuthentication:
         data = {
             'business_name': business_name,
             'email': email,
-            'password': password
+            'password': password,
+            'paid' : False
         }
 
         try:

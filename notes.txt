@@ -1,5 +1,8 @@
+finish the flask route that pays to inxource.
 
+show the paid successfully page
 
+test the subscription payment.
 
 
 

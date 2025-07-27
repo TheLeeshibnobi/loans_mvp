@@ -16,7 +16,7 @@ from settings import Settings
 import traceback
 from repayment import Repayment
 from expenses import Expenses
-
+from subscription import Subscriptions
 
 
 load_dotenv()  # This loads variables from .env into the environment
@@ -50,10 +50,10 @@ def user_auth():
     return render_template('user_login_signup.html')
 
 
-@app.route('/business_login', methods=['GET', 'POST'])  # Added missing slash
+@app.route('/business_login', methods=['GET', 'POST'])
 def business_login():
     if request.method == 'GET':
-        return render_template("user_login_signup.html")  # Show the form
+        return render_template("user_login_signup.html")
 
     # Handle POST request
     business_email = request.form.get('business_email')
@@ -64,16 +64,28 @@ def business_login():
     try:
         result = auth.business_login(business_email, business_password)
 
-        if result.get("success", False):  # Assuming your method returns a dict with success key
-            # Store business info in session
-            session['business_data'] = result.get('business_data', {})
+        if result.get("success", False):
+            business_data = result.get('business_data', {})
+            business_id = business_data.get('id')
+
+            subscription_tool = Subscriptions()
+
+            # Check if business has paid
+            if not subscription_tool.check_business_pay_status(business_id):
+                # Store business data in session for subscription flow
+                session['pending_business_data'] = business_data
+                session['business_data'] = business_data  # Also store here to avoid session expired errors
+                flash('Please complete your subscription to access the dashboard.', 'warning')
+                return redirect(url_for('subscription'))
+
+            # Business has paid, proceed with normal login
+            session['business_data'] = business_data
+            # Clean up any pending data from previous sessions
+            session.pop('pending_business_data', None)
             flash('Business login successful!', 'success')
 
-            # Redirect to the same page but now show user login form
-            # You'll need to pass business data to show the user login form
-            return render_template("user_login_signup.html",
-                                   show_user_login=True,
-                                   business_name=result.get('business_data', {}).get('name'))
+            # redirects for the user to now login into that business
+            return redirect(url_for('login'))
         else:
             flash('Wrong business credentials', 'error')
             return render_template("user_login_signup.html")
@@ -82,6 +94,104 @@ def business_login():
         print(f'Exception: {e}')
         flash('An error occurred during business login', 'error')
         return render_template("user_login_signup.html")
+
+
+@app.route('/subscription', methods=['GET', 'POST'])
+def subscription():
+    """Handle subscription page and payment processing"""
+
+    # Get business data from session - check both locations
+    business_data = session.get('business_data') or session.get('pending_business_data')
+
+    if not business_data:
+        flash('Business session expired. Please log into business first', 'error')
+        return redirect(url_for('business_login'))
+
+    business_id = business_data.get('id')
+
+    if not business_id:
+        flash('Business ID not found in session', 'error')
+        return redirect(url_for('business_login'))
+
+    if request.method == 'GET':
+        # Display the subscription page
+        return render_template('subscription.html')
+
+    elif request.method == 'POST':
+        try:
+            # Get and validate form data
+            first_name = request.form.get('firstName')
+            last_name = request.form.get('lastName')
+            email = request.form.get('email')
+            phone = request.form.get('phone')
+            plan = request.form.get('plan')
+            amount = request.form.get('amount')
+
+            if not all([first_name, last_name, email, phone, plan, amount]):
+                flash('All fields are required.', 'error')
+                return render_template('subscription.html')
+
+            # Clean amount
+            import re
+            amount_clean = re.sub(r'[^\d.]', '', amount)
+            if not amount_clean:
+                flash('Invalid amount format.', 'error')
+                return render_template('subscription.html')
+
+            # Handle payment
+            subscription_tool = Subscriptions()
+            result = subscription_tool.buy_plan(
+                business_id=business_id,
+                amount=float(amount_clean),
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                phone=phone,
+                plan=plan
+            )
+
+            if result:
+                # Payment succeeded - now store the business data properly
+                session['business_data'] = business_data  # Move from pending to active
+                session.pop('pending_business_data', None)  # Clean up pending data
+
+                session['subscription_data'] = {
+                    'plan': plan,
+                    'amount': amount,
+                    'email': email,
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'business_data': business_data
+                }
+
+                flash('Payment request sent successfully! Please check your phone for the mobile money prompt.',
+                      'success')
+                return redirect(url_for('subscription_success'))
+            else:
+                # Payment failed or timed out
+                flash('Payment was not completed or timed out. Please try again.', 'error')
+                return render_template('subscription.html')
+
+        except Exception as e:
+            print(f'Subscription error: {e}')
+            flash('An error occurred while processing your request. Please try again.', 'error')
+            return render_template('subscription.html')
+
+
+@app.route('/subscription-success')
+def subscription_success():
+    """Display subscription success page"""
+    subscription_data = session.get('subscription_data')
+    if not subscription_data:
+        flash('No subscription data found.', 'error')
+        return redirect(url_for('business_login'))
+
+    # You can use the success template we created earlier
+    # Just make sure to pass the subscription data to it
+    return render_template('paid_successfully.html', data=subscription_data)
+
+
+
 
 @app.route('/business_signup', methods=['POST', 'GET'])
 def business_signup():

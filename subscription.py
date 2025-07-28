@@ -1,8 +1,12 @@
 import os
 import datetime
+import textwrap
+
 from supabase import create_client, Client
 import requests
 import time
+import smtplib
+from email.message import EmailMessage
 
 
 class Subscriptions:
@@ -37,7 +41,8 @@ class Subscriptions:
 
 
         # email configuration
-        #self.email_password = os.getenv('EMAIL_KEY')
+        self.email_password = os.getenv('EMAIL_KEY')
+        self.sender_email = os.getenv('SENDER_EMAIL')
 
     def get_tumeny_auth_token(self):
         url = "https://tumeny.herokuapp.com/api/token"
@@ -146,9 +151,9 @@ class Subscriptions:
 
         return False  # After all attempts, still not successful
 
-    def buy_plan(self,business_id,  amount, first_name, last_name, email, phone, plan):
-        """Handles the buying of a selected plan and updates payment status in a database"""
 
+    def buy_plan(self, business_id, amount, first_name, last_name, email, phone, plan):
+        """Handles the buying of a selected plan and updates payment status in a database"""
         try:
             # Step 1: Request payment
             result = self.request_payment(amount, first_name, last_name, email, phone, plan)
@@ -157,7 +162,6 @@ class Subscriptions:
                 print("Failed to initiate payment:", result.get("message"))
                 return False
 
-            # Step 2: Extract payment ID and check payment status
             payment_id = result.get("payment_id")
             if not payment_id:
                 print("No payment ID returned from payment request.")
@@ -168,25 +172,66 @@ class Subscriptions:
                 print("Payment was not completed or failed.")
                 return False
 
-            # Step 3: Update the database
-            try:
-                update_response = self.supabase.table('business_users') \
-                    .update({'paid': True}) \
-                    .eq('id', business_id) \
-                    .execute()
+            # Step 2: Update the database
+            update_response = self.supabase.table('business_users') \
+                .update({'paid': True}) \
+                .eq('id', business_id) \
+                .execute()
 
-                if update_response.data:
-                    return True
-                else:
-                    print("Failed to update 'paid' status in database.")
-                    return False
-            except Exception as db_error:
-                print("Database update error:", db_error)
+            if not update_response or not getattr(update_response, 'data', None):
+                print("Failed to update 'paid' status in database.")
                 return False
+
+            # Step 3: Send email receipt
+            try:
+                self.send_receipt_by_email(
+                    email=email,
+                    first_name=first_name,
+                    last_name=last_name,
+                    amount=amount,
+                    plan=plan,
+                    phone=phone
+                )
+            except Exception as e:
+                print(f"Failed to send receipt email: {e}")
+
+            return True
 
         except Exception as e:
             print("Unexpected error during plan purchase:", e)
             return False
+
+    def send_receipt_by_email(self, email, first_name, last_name, amount, plan, phone):
+        """Sends a receipt of the amount paid to the email"""
+
+        subject = f"Subscription for {plan} at InXource Dashboard"
+        body = textwrap.dedent(f"""
+            Hello {first_name} {last_name},
+
+            Thank you for subscribing to the {plan} plan.
+
+            Payment Receipt:
+            - Name: {first_name} {last_name}
+            - Amount Paid: {amount}
+            - Phone Number: {phone}
+
+            For support, you can call 0762221367.
+
+            Warm regards,  
+            InXource Team
+        """)
+
+        msg = EmailMessage()
+        msg['Subject'] = subject
+        msg['From'] = self.sender_email
+        msg['To'] = email
+        msg.set_content(body)
+
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+            smtp.login(self.sender_email, self.email_password)
+            smtp.send_message(msg)
+            print("Receipt email sent successfully.")
+
 
 
 

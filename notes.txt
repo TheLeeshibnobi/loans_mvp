@@ -1,8 +1,12 @@
-finish the flask route that pays to inxource.
 
-show the paid successfully page
 
-test the subscription payment.
+add a forgot password section and make the functions for it
+
+fix the view loans page everything there isnt working.
+
+add a loading circle for the portable web app.
+
+add a contact support on the settings page.
 
 
 

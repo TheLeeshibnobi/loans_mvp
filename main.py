@@ -1725,9 +1725,7 @@ def ai_agents():
 
     return render_template('ai_agents.html')
 
-@app.route("/test")
-def test():
-    return "Test route works!"
+
 
 
 if __name__ == '__main__':

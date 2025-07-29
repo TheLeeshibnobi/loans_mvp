@@ -1,9 +1,13 @@
+import textwrap
+
 import bcrypt
 from supabase import create_client, Client
 from flask import session
 import os
 import random
 import string
+import smtplib
+from email.message import EmailMessage
 
 
 class UserAuthentication:
@@ -15,6 +19,10 @@ class UserAuthentication:
             raise ValueError("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not set.")
 
         self.supabase: Client = create_client(url, service_role_key)
+
+        # email authentication
+        self.sender_email = os.getenv('SENDER_EMAIL')
+        self.email_password = os.getenv('EMAIL_PASSWORD')
 
     def hash_password(self, password: str) -> str:
         return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -185,6 +193,187 @@ class UserAuthentication:
         characters = string.ascii_letters + string.digits  # a-zA-Z0-9
         admin_key = ''.join(random.choices(characters, k=6))
         return admin_key
+
+    def update_business_password(self, business_id, password):
+        """Sets a new password for the specified business ID"""
+        try:
+            response = self.supabase.table('business_users') \
+                .update({'password': password}) \
+                .eq('id', business_id) \
+                .execute()
+
+            if response.data:
+                print("Password updated successfully.")
+                return True
+            else:
+                print("No matching business ID found.")
+                return False
+        except Exception as e:
+            print(f"Failed to update password: {e}")
+            return False
+
+    def update_user_password(self, business_id, password):
+        """sets a new password for the specific user"""
+        try:
+            response = self.supabase.table('users') \
+                .update({'password': password}) \
+                .eq('business_id', business_id) \
+                .execute()
+
+            if response.data:
+                print("Password updated successfully.")
+                return True
+            else:
+                print("No matching business ID found.")
+                return False
+        except Exception as e:
+            print(f"Failed to update password: {e}")
+            return False
+
+    def retrieve_business_password(self, email):
+        """
+        Helps the user retrieve their business password using the registered email.
+        """
+        try:
+            # Step 1: Get the business_id using the email
+            business_id_response = (
+                self.supabase.table('business_users')
+                .select('id')
+                .eq('email', email)
+                .execute()
+            )
+
+            if not business_id_response.data:
+                print("No business found with the provided email.")
+                return None
+
+            business_id = business_id_response.data[0]['id']
+
+            # Step 2: Get the password for that business_id
+            password_response = (
+                self.supabase.table('business_users')
+                .select('password')
+                .eq('id', business_id)
+                .execute()
+            )
+
+            if not password_response.data:
+                print("Password not found for the given business ID.")
+                return None
+
+            return password_response.data[0]['password']
+
+        except Exception as e:
+            print(f"Error retrieving business password: {e}")
+            return None
+
+    def retrieve_user_password(self, business_id, email):
+        """
+        Helps the user retrieve their password under a specific business ID.
+        """
+        try:
+            password_response = (
+                self.supabase.table('users')
+                .select('password')
+                .eq('business_id', business_id)
+                .eq('email', email)
+                .execute()
+            )
+
+            if not password_response.data:
+                print("No user password found for the provided email and business ID.")
+                return None
+
+            return password_response.data[0]['password']
+
+        except Exception as e:
+            print(f"Error retrieving user password: {e}")
+            return None
+
+    def email_retrieved_business_password(self, email):
+        """Emails the retrieved business password to the given email"""
+
+        try:
+            password = self.retrieve_business_password(email)
+
+            if not password:
+                print("Password could not be retrieved.")
+                return False
+
+            subject = f"Password for your InXource business account at InXource Loan Dashboard"
+            body = textwrap.dedent(f"""
+                Hello,
+
+                Your password for your business account is: {password}
+
+                For support, you can call 0762221367.
+
+                Warm regards,  
+                InXource Team
+            """)
+
+            msg = EmailMessage()
+            msg['Subject'] = subject
+            msg['From'] = self.sender_email
+            msg['To'] = email
+            msg.set_content(body)
+
+            try:
+                with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+                    smtp.login(self.sender_email, self.email_password)
+                    smtp.send_message(msg)
+                    print("Password email sent successfully.")
+                    return True
+            except Exception as smtp_error:
+                print(f"Failed to send email: {smtp_error}")
+                return False
+
+        except Exception as e:
+            print(f"Unexpected error while emailing password: {e}")
+            return False
+
+    def email_retrieved_user_password(self, email, business_id):
+        """Emails the retrieved business password to the given email"""
+
+        try:
+            password = self.retrieve_user_password(business_id, email)
+
+            if not password:
+                print("Password could not be retrieved.")
+                return False
+
+            subject = f"Password for your InXource business account at InXource Loan Dashboard"
+            body = textwrap.dedent(f"""
+                   Hello,
+
+                   Your password for your business account is: {password}
+
+                   For support, you can call 0762221367.
+
+                   Warm regards,  
+                   InXource Team
+               """)
+
+            msg = EmailMessage()
+            msg['Subject'] = subject
+            msg['From'] = self.sender_email
+            msg['To'] = email
+            msg.set_content(body)
+
+            try:
+                with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+                    smtp.login(self.sender_email, self.email_password)
+                    smtp.send_message(msg)
+                    print("Password email sent successfully.")
+                    return True
+            except Exception as smtp_error:
+                print(f"Failed to send email: {smtp_error}")
+                return False
+
+        except Exception as e:
+            print(f"Unexpected error while emailing password: {e}")
+            return False
+
 
 
 

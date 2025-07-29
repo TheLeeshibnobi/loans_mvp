@@ -1,6 +1,6 @@
 
 
-add a forgot password section and make the functions for it
+
 
 fix the view loans page everything there isnt working.
 

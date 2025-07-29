@@ -133,6 +133,48 @@
             margin-right: 15px;
         }
 
+        /* Loading spinner styles */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.9);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(2px);
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        #loading-overlay.show {
+            opacity: 1;
+        }
+
+        .spinner {
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #667eea;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transform: scale(0.8);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        #loading-overlay.show .spinner {
+            transform: scale(1);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .main-wrapper {
@@ -162,6 +204,12 @@
             .header-icon {
                 font-size: 2rem;
                 margin-right: 10px;
+            }
+
+            .spinner {
+                width: 50px;
+                height: 50px;
+                border-width: 5px;
             }
         }
 
@@ -279,6 +327,7 @@
                                         </li>
                                     </ul>
                                 </div>
+                            </div>
                         </nav>
                     </div>
                 </div>
@@ -288,23 +337,89 @@
         </div>
     </div>
 
+    <!-- Loading Spinner Overlay -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function () {
-          navigator.serviceWorker.register("{{ url_for('static', filename='service-worker.js') }}")
-            .then(function (registration) {
-              console.log("✅ ServiceWorker registered:", registration.scope);
-            })
-            .catch(function (error) {
-              console.log("❌ ServiceWorker registration failed:", error);
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register("{{ url_for('static', filename='service-worker.js') }}")
+                    .then(function (registration) {
+                        console.log("✅ ServiceWorker registered:", registration.scope);
+                    })
+                    .catch(function (error) {
+                        console.log("❌ ServiceWorker registration failed:", error);
+                    });
+            });
+        }
+
+        // Loading Overlay Functionality
+        document.addEventListener('DOMContentLoaded', function () {
+            const overlay = document.getElementById('loading-overlay');
+
+            function showLoadingOverlay() {
+                overlay.style.display = 'flex';
+                // Force reflow to ensure display change takes effect before adding class
+                overlay.offsetHeight;
+                overlay.classList.add('show');
+            }
+
+            function hideLoadingOverlay() {
+                overlay.classList.remove('show');
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 300); // Match the CSS transition duration
+            }
+
+            // Show loading spinner on link clicks
+            document.querySelectorAll('a[href]').forEach(function (link) {
+                link.addEventListener('click', function (event) {
+                    const href = link.getAttribute('href');
+                    const target = link.getAttribute('target');
+
+                    // Only show spinner for same-tab navigation and valid links
+                    if (href &&
+                        !href.startsWith('#') &&
+                        !href.startsWith('javascript:') &&
+                        target !== '_blank') {
+
+                        // Small delay for smoother UX
+                        setTimeout(() => {
+                            showLoadingOverlay();
+                        }, 50);
+                    }
+                });
+            });
+
+            // Show loading spinner on form submissions
+            document.querySelectorAll('form').forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    // Disable submit button to prevent double submission
+                    const submitButton = form.querySelector('[type="submit"]');
+                    if (submitButton) {
+                        submitButton.disabled = true;
+                    }
+
+                    // Small delay to allow form validation to run first
+                    setTimeout(() => {
+                        showLoadingOverlay();
+                    }, 50);
+                });
+            });
+
+            // Hide loading overlay when page loads (in case of back button)
+            window.addEventListener('pageshow', function() {
+                hideLoadingOverlay();
             });
         });
-      }
     </script>
-
 </body>
 </html>

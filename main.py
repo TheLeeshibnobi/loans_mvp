@@ -19,7 +19,8 @@ from expenses import Expenses
 from subscription import Subscriptions
 
 
-load_dotenv()  # This loads variables from .env into the environment
+from dotenv import load_dotenv
+load_dotenv()
 import secrets
 print(secrets.token_hex(16))
 
@@ -273,6 +274,66 @@ def signup():
 
     # Handle GET request - render the signup page
     return render_template("user_login_signup.html")
+
+@app.route('/business_forgot_password', methods=['POST', 'GET'])
+def business_forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        print(email)
+
+        auth_tool = UserAuthentication()
+        try:
+            result = auth_tool.email_retrieved_business_password(email)
+            if not result:
+                flash('FAILED TO SEND PASSWORD', 'error')
+                return redirect(url_for('business_login'))  # Changed this line
+
+            flash('PASSWORD SENT TO YOUR EMAIL SUCCESSFULLY', 'success')
+            return redirect(url_for('business_login'))
+
+        except Exception as e:
+            print(f'Exception: {e}')
+            flash('An error occurred. Please try again.', 'error')
+            return redirect(url_for('business_login'))
+
+    # Handle GET request (if someone accesses the URL directly)
+    return redirect(url_for('business_login'))
+
+@app.route('/user_forgot_password', methods=['POST', 'GET'])
+def user_forgot_password():
+    # Get business_id from session
+    if 'business_data' not in session:
+        flash('Business session expired. Please log into business first', 'error')
+        return redirect(url_for('business_login'))
+
+    business_id = session['business_data'].get('id')
+
+    if not business_id:
+        flash('Business ID not found in session', 'error')
+        return redirect(url_for('business_login'))
+
+    if request.method == 'POST':
+        email = request.form.get('email')
+
+        auth_tool = UserAuthentication()
+        try:
+            result = auth_tool.email_retrieved_user_password(business_id, email)
+            if not result:
+                flash('FAILED TO SEND PASSWORD', 'error')
+                return redirect(url_for('business_login'))  # Changed this line
+
+            flash('PASSWORD SENT TO YOUR EMAIL SUCCESSFULLY', 'success')
+            return redirect(url_for('business_login'))
+
+        except Exception as e:
+            print(f'Exception: {e}')
+            flash('An error occurred. Please try again.', 'error')
+            return redirect(url_for('business_login'))
+
+    # Handle GET request (if someone accesses the URL directly)
+    return redirect(url_for('business_login'))
+
+
 
 @app.route('/unauthorized_access')
 def unauthorized_access():

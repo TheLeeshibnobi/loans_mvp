@@ -212,6 +212,82 @@
         .modal-close-btn:hover {
             background-color: #1e2a5a;
         }
+
+        /* Forgot Password Modal Styles */
+        .forgot-password-modal {
+            display: none;
+            position: fixed;
+            z-index: 1060;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .forgot-password-modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .forgot-password-header {
+            text-align: center;
+            color: #2c3e8c;
+            margin-bottom: 1.5rem;
+        }
+
+        .forgot-password-form {
+            margin: 1rem 0;
+        }
+
+        .forgot-password-message {
+            background-color: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 6px;
+            padding: 1rem;
+            margin: 1rem 0;
+            color: #0066cc;
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
+        .modal-submit-btn {
+            background-color: #2c3e8c;
+            color: white;
+            border: none;
+            padding: 0.7rem 2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .modal-submit-btn:hover {
+            background-color: #1e2a5a;
+        }
+
+        .modal-cancel-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.7rem 2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        .modal-cancel-btn:hover {
+            background-color: #545b62;
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -242,6 +318,7 @@
                 <button type="submit" class="btn btn-primary">Access Business</button>
 
                 <div class="toggle-form">
+                    <a onclick="showForgotPasswordModal('business')">Forgot Password?</a><br>
                     Don't have a business account? <a onclick="showBusinessSignupForm()">Create Business Account</a>
                 </div>
             </form>
@@ -284,6 +361,7 @@
                 <button type="button" class="btn btn-secondary" onclick="goBackToBusiness()">Change Business</button>
 
                 <div class="toggle-form">
+                    <a onclick="showForgotPasswordModal('user')">Forgot Password?</a><br>
                     Don't have an account? <a onclick="showSignupForm()">Sign Up</a>
                 </div>
             </form>
@@ -344,7 +422,84 @@
         </div>
     </div>
 
+    <!-- Forgot Password Modal -->
+    <div id="forgot-password-modal" class="forgot-password-modal">
+        <div class="forgot-password-modal-content">
+            <div class="forgot-password-header">
+                <h3>🔒 Forgot Password</h3>
+                <p id="forgot-password-subtitle">Access your password</p>
+            </div>
+
+            <form id="forgot-password-form" class="forgot-password-form" method="POST" action="">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+                <input type="hidden" name="account_type" id="account-type" value="">
+
+                <input type="email"
+                       class="form-control"
+                       name="email"
+                       id="forgot-password-email"
+                       placeholder="Enter your email address"
+                       required>
+
+                <div class="forgot-password-message">
+                    <strong>📧 Password Reset Instructions</strong><br>
+                    We will send your password to your email address.<br>
+                    <em>Make sure this is the same email you used to sign up.</em>
+                </div>
+
+                <button type="submit" class="modal-submit-btn">Send Reset Link</button>
+                <button type="button" class="modal-cancel-btn" onclick="closeForgotPasswordModal()">Cancel</button>
+            </form>
+        </div>
+    </div>
+
     <script>
+        // Function to show forgot password modal
+        function showForgotPasswordModal(accountType) {
+            const modal = document.getElementById('forgot-password-modal');
+            const subtitle = document.getElementById('forgot-password-subtitle');
+            const form = document.getElementById('forgot-password-form');
+            const emailInput = document.getElementById('forgot-password-email');
+            const accountTypeInput = document.getElementById('account-type');
+
+            // Set account type
+            accountTypeInput.value = accountType;
+
+            // Update modal content based on account type
+            if (accountType === 'business') {
+                subtitle.textContent = 'Reset your business account password';
+                emailInput.placeholder = 'Enter your business email address';
+                form.action = '{{ url_for("business_forgot_password") if url_for is defined else "/business-forgot-password" }}';
+            } else {
+                subtitle.textContent = 'Reset your user account password';
+                emailInput.placeholder = 'Enter your user email address';
+                form.action = '{{ url_for("user_forgot_password") if url_for is defined else "/user-forgot-password" }}';
+            }
+
+            // Clear any previous input
+            emailInput.value = '';
+
+            // Show modal
+            modal.style.display = 'block';
+
+            // Focus on email input
+            setTimeout(() => {
+                emailInput.focus();
+            }, 100);
+
+            // Close modal when clicking outside
+            modal.onclick = function(event) {
+                if (event.target === modal) {
+                    closeForgotPasswordModal();
+                }
+            };
+        }
+
+        // Function to close forgot password modal
+        function closeForgotPasswordModal() {
+            document.getElementById('forgot-password-modal').style.display = 'none';
+        }
+
         // Function to show admin key modal after successful business signup
         function showAdminKeyModal(adminKey) {
             document.getElementById('admin-key-display').textContent = adminKey;
@@ -506,6 +661,22 @@
         // Example: Call this function from your Python backend after successful business login
         // You can pass the business name to display it
         // showUserLoginForm("Example Business Name");
+    </script>
+
+    <!-- Handle ESC key to close modals -->
+    <script>
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                // Close forgot password modal
+                const forgotModal = document.getElementById('forgot-password-modal');
+                if (forgotModal.style.display === 'block') {
+                    closeForgotPasswordModal();
+                }
+
+                // Note: Admin key modal intentionally doesn't close with ESC
+                // to ensure users save their key
+            }
+        });
     </script>
 
     <!-- Bootstrap 5 JS Bundle -->

@@ -463,10 +463,10 @@ def loans_data():
 
     if from_date or to_date or loan_type:
         # Note: You'll need to update the Loans.filtered_loans() method to accept business_id
-        loans = loans_tool.filtered_loans(from_date, to_date, loan_type, business_id)
+        loans = loans_tool.filtered_loans(business_id, from_date, to_date, loan_type)
     elif search_query:
         # Note: You'll need to update the Loans.search_by_id() method to accept business_id
-        loans = loans_tool.search_by_id(search_query, business_id)
+        loans = loans_tool.search_by_id(business_id, search_query)
     else:
         loans = overview_tool.recent_borrowers(business_id)
 
@@ -492,7 +492,7 @@ def download_loans_csv():
 
     try:
         # Note: You'll need to update the Loans.download_csv() method to accept business_id
-        return loans_tool.download_csv(start_date, end_date, business_id)
+        return loans_tool.download_csv(business_id, start_date, end_date)
     except Exception as e:
         print(f'Exception: {e}')
         flash(f'Error: {e}')

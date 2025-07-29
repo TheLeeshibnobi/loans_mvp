@@ -4,7 +4,6 @@
 
 fix the view loans page everything there isnt working.
 
-add a loading circle for the portable web app.
 
 add a contact support on the settings page.
 

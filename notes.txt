@@ -2,14 +2,6 @@
 
 
 
-fix the view loans page everything there isnt working.
-
-
-add a contact support on the settings page.
-
-
-
-
 
 
 

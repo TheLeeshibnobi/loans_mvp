@@ -374,6 +374,45 @@ class UserAuthentication:
             print(f"Unexpected error while emailing password: {e}")
             return False
 
+    def enterprise_request(self, business_id, name, email, phone, address, description):
+        """Sends an internal notification email to self when a business requests enterprise access."""
+        try:
+            subject = "Enterprise Request for inXource Loan Dashboard"
+            body = textwrap.dedent(f"""
+                Hello,
 
+                A new enterprise request has been received.
+
+                Business Name: {name}
+                Business ID: {business_id}
+                Contact Email: {email}
+                Phone: {phone}
+                Address: {address}
+
+                Message:
+                {description}
+
+                -- inXource Notification
+            """)
+
+            msg = EmailMessage()
+            msg['Subject'] = subject
+            msg['From'] = self.sender_email
+            msg['To'] = self.sender_email  # sending to self (internal)
+            msg.set_content(body)
+
+            try:
+                with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+                    smtp.login(self.sender_email, self.email_password)
+                    smtp.send_message(msg)
+                    print("Enterprise request email sent successfully.")
+                    return True
+            except Exception as smtp_error:
+                print(f"Failed to send enterprise email: {smtp_error}")
+                return False
+
+        except Exception as e:
+            print(f"Unexpected error while sending enterprise request: {e}")
+            return False
 
 

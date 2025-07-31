@@ -220,6 +220,39 @@ def business_signup():
         return render_template("user_login_signup.html")
 
 
+@app.route('/enterprise_request', methods=['POST'])
+def enterprise_request():
+    # Ensure user is logged in with business session
+    if 'business_data' not in session:
+        flash('Business session expired. Please log into your business account.', 'error')
+        return redirect(url_for('business_login'))
+
+    business_id = session['business_data'].get('id')
+
+    # Get form data (ensure keys match form field names)
+    name = request.form.get('businessName')  # not 'name'
+    email = request.form.get('email')
+    phone = request.form.get('phone')
+    address = request.form.get('address')
+    description = request.form.get('description')
+
+    try:
+        auth_tool = UserAuthentication()
+        result = auth_tool.enterprise_request(business_id, name, email, phone, address, description)
+
+        if result:
+            flash('Your enterprise request has been submitted successfully. We will contact you shortly.', 'success')
+        else:
+            flash('Failed to send enterprise request. Please try again later.', 'error')
+
+    except Exception as e:
+        print(f'Exception: {e}')
+        flash(f'Unexpected error: {e}', 'error')
+
+    # Redirect back to subscription or dashboard page
+    return redirect(url_for('subscription'))
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     # Check if business is logged in at the start

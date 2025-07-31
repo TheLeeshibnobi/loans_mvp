@@ -479,7 +479,7 @@ class CustomerAnalytics:
 
             # Check if data is empty
             if not loan_location_data or all(value == 0 for value in loan_location_data.values()):
-                return "<div style='text-align: center; padding: 20px; font-family: Arial, sans-serif;'>No loan data available for the specified filters.</div>"
+                return "<div style='text-align: center; padding: 40px; font-family: Arial, sans-serif; color: #6b7280;'>No loan data available for the specified filters.</div>"
 
             # Convert dictionary to DataFrame
             df = pd.DataFrame(list(loan_location_data.items()), columns=['Location', 'Loan_Count'])
@@ -488,51 +488,67 @@ class CustomerAnalytics:
             df = df[df['Loan_Count'] > 0]
 
             if df.empty:
-                return "<div style='text-align: center; padding: 20px; font-family: Arial, sans-serif;'>No loan data available for the specified filters.</div>"
+                return "<div style='text-align: center; padding: 40px; font-family: Arial, sans-serif; color: #6b7280;'>No loan data available for the specified filters.</div>"
 
             # Sort by loan count in descending order
             df = df.sort_values('Loan_Count', ascending=False)
 
-            # Create donut chart
+            # Create donut chart with professional colors
+            colors = ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#dbeafe', '#1d4ed8', '#1e40af', '#1e3a8a']
+
             fig = go.Figure(data=[go.Pie(
                 labels=df['Location'],
                 values=df['Loan_Count'],
-                hole=0.4,  # This creates the donut hole
+                hole=0.4,
                 textinfo='label+percent',
                 textposition='outside',
                 marker=dict(
-                    colors=px.colors.qualitative.Set3,  # Nice color palette
+                    colors=colors[:len(df)],
                     line=dict(color='#FFFFFF', width=2)
-                )
+                ),
+                hovertemplate='<b>%{label}</b><br>Loans: %{value}<br>Percentage: %{percent}<extra></extra>'
             )])
 
-            # Update layout
+            # Update layout with clean, professional styling
             fig.update_layout(
                 title={
-                    'text': f'Loans by Location - {gender.title()} ({month}/{year})',
+                    'text': f'Loans by Location<br><span style="font-size:12px; color:#6b7280;">{gender.title()} - {month}/{year}</span>',
                     'x': 0.5,
                     'xanchor': 'center',
-                    'font': {'size': 16, 'family': 'Arial, sans-serif'}
+                    'font': {'size': 14, 'family': 'Arial, sans-serif', 'color': '#1f2937'}
                 },
-                font=dict(size=12),
+                font=dict(size=11, color='#6b7280'),
                 showlegend=True,
                 legend=dict(
                     orientation="v",
                     yanchor="middle",
                     y=0.5,
                     xanchor="left",
-                    x=1.02
+                    x=1.02,
+                    font=dict(size=10)
                 ),
                 margin=dict(l=20, r=120, t=60, b=20),
+                height=350,
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)'
             )
 
             # Convert to HTML string
-            html_string = fig.to_html(include_plotlyjs='cdn', full_html=False, config={'responsive': True})
+            html_string = fig.to_html(
+                include_plotlyjs='cdn',
+                full_html=False,
+                config={
+                    'responsive': True,
+                    'displayModeBar': False,
+                    'scrollZoom': False
+                }
+            )
 
             return html_string
         except Exception as e:
             logging.error(f"Error in loans_by_location_chart: {str(e)}")
-            return f"<div style='text-align: center; padding: 20px; font-family: Arial, sans-serif; color: red;'>Error generating chart: Unable to create visualization</div>"
+            return (f"<div style='text-align: center; padding: 40px; font-family:"
+                    f" Arial, sans-serif; color: #ef4444;'>Error generating chart: Unable to create visualization</div>")
 
     def loans_by_occupation_chart(self, gender, year, month, business_id):
         """returns an HTML string of a bar chart for loans by occupation"""
@@ -541,7 +557,7 @@ class CustomerAnalytics:
 
             # Check if data is empty
             if not loans_occupation_data or all(value == 0 for value in loans_occupation_data.values()):
-                return "<div style='text-align: center; padding: 20px; font-family: Arial, sans-serif;'>No loan data available for the specified filters.</div>"
+                return "<div style='text-align: center; padding: 40px; font-family: Arial, sans-serif; color: #6b7280;'>No loan data available for the specified filters.</div>"
 
             # Convert dictionary to DataFrame
             df = pd.DataFrame(list(loans_occupation_data.items()), columns=['Occupation', 'Loan_Count'])
@@ -550,7 +566,7 @@ class CustomerAnalytics:
             df = df[df['Loan_Count'] > 0]
 
             if df.empty:
-                return "<div style='text-align: center; padding: 20px; font-family: Arial, sans-serif;'>No loan data available for the specified filters.</div>"
+                return "<div style='text-align: center; padding: 40px; font-family: Arial, sans-serif; color: #6b7280;'>No loan data available for the specified filters.</div>"
 
             # Sort by loan count in descending order
             df = df.sort_values('Loan_Count', ascending=False)
@@ -559,40 +575,147 @@ class CustomerAnalytics:
             fig = go.Figure(data=[go.Bar(
                 x=df['Occupation'],
                 y=df['Loan_Count'],
-                marker_color='#1f77b4',  # Blue color
+                marker=dict(
+                    color='#2563eb',
+                    line=dict(color='#1d4ed8', width=1)
+                ),
                 text=df['Loan_Count'],
                 textposition='outside',
-                textfont=dict(size=10)
+                textfont=dict(size=10),
+                hovertemplate='<b>%{x}</b><br>Loans: %{y}<extra></extra>'
             )])
 
             # Update layout
             fig.update_layout(
                 title={
-                    'text': f'Loans by Occupation - {gender.title()} ({month}/{year})',
+                    'text': f'Loans by Occupation<br><span style="font-size:12px; color:#6b7280;">{gender.title()} - {month}/{year}</span>',
                     'x': 0.5,
                     'xanchor': 'center',
-                    'font': {'size': 16, 'family': 'Arial, sans-serif'}
+                    'font': {'size': 14, 'family': 'Arial, sans-serif', 'color': '#1f2937'}
                 },
-                xaxis_title='Occupation',
+                xaxis_title='',
                 yaxis_title='Number of Loans',
-                font=dict(size=10),
-                margin=dict(l=40, r=20, t=60, b=80),
+                font=dict(size=11, color='#6b7280'),
+                margin=dict(l=50, r=20, t=60, b=80),
+                height=350,
                 xaxis=dict(
-                    tickangle=45,  # Rotate x-axis labels for better readability
-                    tickfont=dict(size=9)
+                    tickangle=45,
+                    tickfont=dict(size=9),
+                    showgrid=False
                 ),
                 yaxis=dict(
-                    tickfont=dict(size=10)
-                )
+                    tickfont=dict(size=10),
+                    showgrid=True,
+                    gridcolor='rgba(0,0,0,0.1)',
+                    gridwidth=1
+                ),
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)'
             )
 
             # Convert to HTML string
-            html_string = fig.to_html(include_plotlyjs='cdn', full_html=False, config={'responsive': True})
+            html_string = fig.to_html(
+                include_plotlyjs='cdn',
+                full_html=False,
+                config={
+                    'responsive': True,
+                    'displayModeBar': False,
+                    'scrollZoom': False
+                }
+            )
 
             return html_string
         except Exception as e:
             logging.error(f"Error in loans_by_occupation_chart: {str(e)}")
-            return f"<div style='text-align: center; padding: 20px; font-family: Arial, sans-serif; color: red;'>Error generating chart: Unable to create visualization</div>"
+            return f"<div style='text-align: center; padding: 40px; font-family: Arial, sans-serif; color: #ef4444;'>Error generating chart: Unable to create visualization</div>"
+
+    def age_group_radial_bar_chart(self, gender, year, month, business_id):
+        """returns an HTML string of a polar bar chart for loans by age group"""
+        try:
+            age_group_loans_data = self.loans_by_age_group(gender, year, month, business_id)
+
+            # Check if data is empty
+            if not age_group_loans_data or all(value == 0 for value in age_group_loans_data.values()):
+                return "<div style='text-align: center; padding: 40px; font-family: Arial, sans-serif; color: #6b7280;'>No loan data available for the specified filters.</div>"
+
+            # Convert dictionary to DataFrame and filter out zero values
+            df = pd.DataFrame(list(age_group_loans_data.items()), columns=['Age_Group', 'Loan_Count'])
+            df = df[df['Loan_Count'] > 0]
+
+            if df.empty:
+                return "<div style='text-align: center; padding: 40px; font-family: Arial, sans-serif; color: #6b7280;'>No loan data available for the specified filters.</div>"
+
+            # Sort by age group for logical ordering
+            age_order = ['18-29', '30-50', '50-60', 'above 60']
+            df['sort_order'] = df['Age_Group'].map({age: i for i, age in enumerate(age_order)})
+            df = df.sort_values('sort_order').drop('sort_order', axis=1)
+
+            # Create polar bar chart
+            colors = ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd']
+
+            fig = go.Figure()
+
+            fig.add_trace(go.Barpolar(
+                r=df['Loan_Count'],
+                theta=df['Age_Group'],
+                width=0.8,
+                marker=dict(
+                    color=colors[:len(df)],
+                    line=dict(color='rgba(255,255,255,0.8)', width=1)
+                ),
+                opacity=0.8,
+                text=df['Loan_Count'],
+                textfont=dict(size=10),
+                hovertemplate='<b>%{theta}</b><br>Loans: %{r}<extra></extra>'
+            ))
+
+            # Update layout for polar chart
+            fig.update_layout(
+                title={
+                    'text': f'Loans by Age Group<br><span style="font-size:12px; color:#6b7280;">{gender.title()} - {month}/{year}</span>',
+                    'x': 0.5,
+                    'xanchor': 'center',
+                    'font': {'size': 14, 'family': 'Arial, sans-serif', 'color': '#1f2937'}
+                },
+                polar=dict(
+                    radialaxis=dict(
+                        visible=True,
+                        range=[0, max(df['Loan_Count']) * 1.1] if not df.empty else [0, 1],
+                        tickfont=dict(size=9),
+                        gridcolor='rgba(0,0,0,0.1)',
+                        gridwidth=1
+                    ),
+                    angularaxis=dict(
+                        tickfont=dict(size=10),
+                        rotation=90,
+                        direction='clockwise'
+                    ),
+                    bgcolor='rgba(255,255,255,0.9)'
+                ),
+                font=dict(size=10, color='#6b7280'),
+                margin=dict(l=40, r=40, t=60, b=40),
+                height=350,
+                showlegend=False,
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)'
+            )
+
+            # Convert to HTML string
+            html_string = fig.to_html(
+                include_plotlyjs='cdn',
+                full_html=False,
+                config={
+                    'responsive': True,
+                    'displayModeBar': False,
+                    'scrollZoom': False
+                }
+            )
+
+            return html_string
+        except Exception as e:
+            logging.error(f"Error in age_group_radial_bar_chart: {str(e)}")
+            return f"<div style='text-align: center; padding: 40px; font-family: Arial, sans-serif; color: #ef4444;'>Error generating chart: Unable to create visualization</div>"
+
 
     def age_group_radial_bar_chart(self, gender, year, month, business_id):
         """returns an HTML string of a radial_bar_chart for loans by age group"""

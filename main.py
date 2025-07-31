@@ -1101,7 +1101,7 @@ def business_analytics():
             loan_reason_trend_chart = business_analytics_tool.loan_reason_trend_chart(gender, year, loan_reason, business_id)
 
         interest_vs_transaction_costs_chart = business_analytics_tool.interest_vs_transaction_costs_chart(gender, year, business_id)
-        loan_repayments_vs_discount_chart = business_analytics_tool.loan_repayments_vs_discount_chart(gender, year, business_id)
+        loan_repayments_vs_expenses_chart = business_analytics_tool.loan_repayments_vs_expenses_chart(gender, year, business_id)
 
         return render_template(
             'business_analytics.html',
@@ -1111,7 +1111,7 @@ def business_analytics():
             active_portfolio=active_portfolio,
             loan_reason_trend_chart=loan_reason_trend_chart,
             interest_vs_transaction_costs_chart=interest_vs_transaction_costs_chart,
-            loan_repayments_vs_discount_chart=loan_repayments_vs_discount_chart,
+            loan_repayments_vs_expenses_chart=loan_repayments_vs_expenses_chart,
 
             # IMPORTANT: Pass back the selected values to maintain form state
             selected_gender=gender,

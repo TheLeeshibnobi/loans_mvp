@@ -1,5 +1,11 @@
 
 
+set up cookies for authentication
+add a document file to every transaction record upload
+add an export net profit account
+
+
+
 
 
 

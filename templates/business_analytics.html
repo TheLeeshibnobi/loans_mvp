@@ -1,248 +1,636 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="form-container">
-    <form method="POST" action="{{ url_for('business_analytics') }}">
-      <!-- Add the CSRF token as a hidden input -->
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+<div class="analytics-container">
+    <!-- Filter Form -->
+    <div class="filter-section">
+        <form method="POST" action="{{ url_for('business_analytics') }}" class="filter-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
 
-      <select name="gender">
-        <option value="All" {% if selected_gender == 'All' %}selected{% endif %}>All</option>
-        <option value="Male" {% if selected_gender == 'Male' %}selected{% endif %}>Male</option>
-        <option value="Female" {% if selected_gender == 'Female' %}selected{% endif %}>Female</option>
-      </select>
+            <div class="filter-group">
+                <select name="gender" class="form-select">
+                    <option value="All" {% if selected_gender == 'All' %}selected{% endif %}>All Genders</option>
+                    <option value="Male" {% if selected_gender == 'Male' %}selected{% endif %}>Male</option>
+                    <option value="Female" {% if selected_gender == 'Female' %}selected{% endif %}>Female</option>
+                </select>
 
-      <select name="months">
-        <option value="All Months" {% if selected_month == 'All Months' %}selected{% endif %}>All Months</option>
-        <option value="January" {% if selected_month == 'January' %}selected{% endif %}>January</option>
-        <option value="February" {% if selected_month == 'February' %}selected{% endif %}>February</option>
-        <option value="March" {% if selected_month == 'March' %}selected{% endif %}>March</option>
-        <option value="April" {% if selected_month == 'April' %}selected{% endif %}>April</option>
-        <option value="May" {% if selected_month == 'May' %}selected{% endif %}>May</option>
-        <option value="June" {% if selected_month == 'June' %}selected{% endif %}>June</option>
-        <option value="July" {% if selected_month == 'July' %}selected{% endif %}>July</option>
-        <option value="August" {% if selected_month == 'August' %}selected{% endif %}>August</option>
-        <option value="September" {% if selected_month == 'September' %}selected{% endif %}>September</option>
-        <option value="October" {% if selected_month == 'October' %}selected{% endif %}>October</option>
-        <option value="November" {% if selected_month == 'November' %}selected{% endif %}>November</option>
-        <option value="December" {% if selected_month == 'December' %}selected{% endif %}>December</option>
-      </select>
+                <select name="months" class="form-select">
+                    <option value="All Months" {% if selected_month == 'All Months' %}selected{% endif %}>All Months</option>
+                    <option value="January" {% if selected_month == 'January' %}selected{% endif %}>January</option>
+                    <option value="February" {% if selected_month == 'February' %}selected{% endif %}>February</option>
+                    <option value="March" {% if selected_month == 'March' %}selected{% endif %}>March</option>
+                    <option value="April" {% if selected_month == 'April' %}selected{% endif %}>April</option>
+                    <option value="May" {% if selected_month == 'May' %}selected{% endif %}>May</option>
+                    <option value="June" {% if selected_month == 'June' %}selected{% endif %}>June</option>
+                    <option value="July" {% if selected_month == 'July' %}selected{% endif %}>July</option>
+                    <option value="August" {% if selected_month == 'August' %}selected{% endif %}>August</option>
+                    <option value="September" {% if selected_month == 'September' %}selected{% endif %}>September</option>
+                    <option value="October" {% if selected_month == 'October' %}selected{% endif %}>October</option>
+                    <option value="November" {% if selected_month == 'November' %}selected{% endif %}>November</option>
+                    <option value="December" {% if selected_month == 'December' %}selected{% endif %}>December</option>
+                </select>
 
-      <input type="text" name="year" value="{{ selected_year or '' }}" placeholder="Enter Year">
+                <input type="text" name="year" value="{{ selected_year or '' }}" placeholder="Enter Year" class="form-input">
 
-      <button type="submit">Submit</button>
-    </form>
+                <button type="submit" class="btn-primary">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                    </svg>
+                    Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-section">
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-icon loans-icon">
+                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                        <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                    </svg>
+                </div>
+                <div class="kpi-content">
+                    <div class="kpi-value">{{ total_loans_issued or 0 }}</div>
+                    <div class="kpi-label">Total Loans Issued</div>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon revenue-icon">
+                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M4 10a1 1 0 0 1 2 0v1a1 1 0 0 1-2 0v-1zm2-5.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5zM6 7a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3A.5.5 0 0 1 6 7z"/>
+                        <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/>
+                    </svg>
+                </div>
+                <div class="kpi-content">
+                    <div class="kpi-value">${{ "{:,.0f}".format(revenue_generated) if revenue_generated else 'N/A' }}</div>
+                    <div class="kpi-label">Revenue Generated</div>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon default-icon">
+                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                    </svg>
+                </div>
+                <div class="kpi-content">
+                    <div class="kpi-value">{{ default_rate or 'N/A' }}</div>
+                    <div class="kpi-label">Default Rate</div>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon portfolio-icon">
+                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M12.136.326A1.5 1.5 0 0 1 14 1.78V3h.5A1.5 1.5 0 0 1 16 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 13.5v-9a1.5 1.5 0 0 1 1.5-1.5H2V1.78a1.5 1.5 0 0 1 1.864-1.454L12.136.326zM13 3V1.864a.5.5 0 0 0-.621-.484L4.621 2.22A.5.5 0 0 0 4.5 2.7V3h8.5zM1.5 4a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5h-13z"/>
+                    </svg>
+                </div>
+                <div class="kpi-content">
+                    <div class="kpi-value">${{ "{:,.0f}".format(active_portfolio) if active_portfolio else '0' }}</div>
+                    <div class="kpi-label">Active Portfolio</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Message -->
+    {% if error_message %}
+    <div class="error-section">
+        <div class="error-alert">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+            </svg>
+            {{ error_message }}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Loan Reason Filter -->
+    <div class="loan-reason-section">
+        <form method="POST" action="{{ url_for('business_analytics') }}" class="loan-reason-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+            <input type="hidden" name="gender" value="{{ selected_gender or 'All' }}"/>
+            <input type="hidden" name="year" value="{{ selected_year or '' }}"/>
+
+            <div class="loan-reason-group">
+                <label for="loanReason" class="form-label">
+                    <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                    </svg>
+                    Analyze Loan Reason:
+                </label>
+
+                <div class="input-group">
+                    <input class="form-input" list="loan-reasons" id="loanReason" name="loan_reason"
+                           value="{{ selected_loan_reason or '' }}" placeholder="Type to search loan reasons..." required>
+                    <datalist id="loan-reasons">
+                        <option value="School fees">
+                        <option value="Medical expenses">
+                        <option value="Home construction">
+                        <option value="House rentals">
+                        <option value="Business capital">
+                        <option value="Farming inputs">
+                        <option value="Car purchase">
+                        <option value="Funeral expenses">
+                        <option value="Debt consolidation">
+                        <option value="Household items">
+                        <option value="Travel expenses">
+                        <option value="Wedding costs">
+                        <option value="Emergency needs">
+                        <option value="Property purchase">
+                        <option value="Tuition fees">
+                        <option value="Utility bills">
+                        <option value="Land acquisition">
+                        <option value="Furniture purchase">
+                        <option value="Phone or gadget purchase">
+                        <option value="Livestock purchase">
+                    </datalist>
+                    <button type="submit" class="btn-secondary">View Trend</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-section">
+        <!-- Loan Reason Trend Chart -->
+        <div class="chart-container">
+            <div class="chart-wrapper">
+                {% if loan_reason_trend_chart %}
+                    {{ loan_reason_trend_chart|safe }}
+                {% else %}
+                    <div class="chart-placeholder">
+                        <svg width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M1 11a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3zm5-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm5-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V2z"/>
+                        </svg>
+                        <h3>Loan Reason Analysis</h3>
+                        <p>Select a loan reason above to see its trend analysis</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Revenue Overview Chart -->
+        <div class="chart-container">
+            <div class="chart-wrapper">
+                {{ interest_vs_transaction_costs_chart|safe }}
+            </div>
+        </div>
+
+        <!-- Repayments Analysis Chart -->
+        <div class="chart-container">
+            <div class="chart-wrapper">
+                {{ loan_repayments_vs_expenses_chart|safe }}
+            </div>
+        </div>
+    </div>
 </div>
-
-<!--key statistics cards-->
-<div class="container my-4">
-  <div class="row g-3" id="statsGrid">
-
-    <div class="col-12 col-sm-6 col-md-3">
-      <div class="stat-card kpi shadow-sm rounded p-3 text-center bg-white">
-        <div class="stat-value fs-3 fw-bold" id="totalCustomers">{{ total_loans_issued or 0 }}</div>
-        <div class="stat-label text-muted">Total Loans Issued</div>
-      </div>
-    </div>
-
-    <div class="col-12 col-sm-6 col-md-3">
-      <div class="stat-card kpi shadow-sm rounded p-3 text-center bg-white">
-        <div class="stat-value fs-3 fw-bold" id="bestProvince">{{ revenue_generated or 'N/A' }}</div>
-        <div class="stat-label text-muted">Revenue Generated</div>
-      </div>
-    </div>
-
-    <div class="col-12 col-sm-6 col-md-3">
-      <div class="stat-card kpi shadow-sm rounded p-3 text-center bg-white">
-        <div class="stat-value fs-3 fw-bold" id="worstProvince">{{ default_rate or 'N/A' }}</div>
-        <div class="stat-label text-muted">Default Rate</div>
-      </div>
-    </div>
-
-    <div class="col-12 col-sm-6 col-md-3">
-      <div class="stat-card kpi shadow-sm rounded p-3 text-center bg-white">
-        <div class="stat-value fs-3 fw-bold" id="avgLoanAmount">{{ active_portfolio or 0 }}</div>
-        <div class="stat-label text-muted">Active Portfolio</div>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- Display error message if any -->
-{% if error_message %}
-<div class="container my-4">
-  <div class="alert alert-danger" role="alert">
-    {{ error_message }}
-  </div>
-</div>
-{% endif %}
-
-<form class="container mt-4" method="POST" action="{{ url_for('business_analytics') }}">
-  <!-- Add the CSRF token as a hidden input -->
-  <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
-
-  <!-- IMPORTANT: Add hidden fields to preserve the previous selections -->
-  <input type="hidden" name="gender" value="{{ selected_gender or 'All' }}"/>
-  <!--<input type="hidden" name="months" value="{{ selected_month or 'All Months' }}"/>-->
-  <input type="hidden" name="year" value="{{ selected_year or '' }}"/>
-
-  <div class="row justify-content-center align-items-center g-2">
-
-    <!-- Label -->
-    <div class="col-auto">
-      <label for="loanReason" class="col-form-label fw-bold text-nowrap">Loan Reason:</label>
-    </div>
-
-    <!-- Input with datalist -->
-    <div class="col-md-5">
-      <input class="form-control" list="loan-reasons" id="loanReason" name="loan_reason" value="{{ selected_loan_reason or '' }}" placeholder="Type to search..." required>
-      <datalist id="loan-reasons">
-        <option value="School fees">
-        <option value="Medical expenses">
-        <option value="Home construction">
-        <option value="House rentals">
-        <option value="Business capital">
-        <option value="Farming inputs">
-        <option value="Car purchase">
-        <option value="Funeral expenses">
-        <option value="Debt consolidation">
-        <option value="Household items">
-        <option value="Travel expenses">
-        <option value="Wedding costs">
-        <option value="Emergency needs">
-        <option value="Property purchase">
-        <option value="Tuition fees">
-        <option value="Utility bills">
-        <option value="Land acquisition">
-        <option value="Furniture purchase">
-        <option value="Phone or gadget purchase">
-        <option value="Livestock purchase">
-      </datalist>
-    </div>
-
-    <!-- Button -->
-    <div class="col-auto">
-      <button type="submit" class="btn btn-primary">View Trend</button>
-    </div>
-
-  </div>
-</form>
-
-<!--charts-->
-<div class="container mt-4">
-  {% if loan_reason_trend_chart %}
-    <div class="col-12">
-      <div class="p-3 rounded shadow-sm" style="background-color: #e9f5ff;">
-          {{ loan_reason_trend_chart|safe }}
-      </div>
-    </div>
-  {% else %}
-    <div class="col-12">
-      <div class="p-3 rounded shadow-sm" style="background-color: #e9f5ff;">
-          <p class="text-danger fw-medium fs-5">
-              Please select a loan reason to see its trend!
-          </p>
-      </div>
-    </div>
-  {% endif %}
-</div>
-
-
-
-<div class="container mt-4">
-  <div class="col-12">
-      <div class="p-3 rounded shadow-sm" style="background-color: #e9f5ff;">
-          {{ interest_vs_transaction_costs_chart|safe }}
-      </div>
-  </div>
-</div>
-
-<div class="container mt-4">
-  <div class="col-12">
-      <div class="p-3 rounded shadow-sm" style="background-color: #e9f5ff;">
-          {{ loan_repayments_vs_discount_chart|safe }}
-      </div>
-  </div>
-</div>
-
 
 <style>
-.form-container {
-  padding: 20px;
-  max-width: 100%;
-  margin: 0 auto;
+/* Variables for consistent theming */
+:root {
+    --primary-color: #6b48ff;
+    --primary-light: #8b6fff;
+    --primary-dark: #5a3de6;
+    --secondary-color: #4169E1;
+    --accent-color: #87CEEB;
+    --light-blue: #E6F3FF;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --text-primary: #333;
+    --text-secondary: #666;
+    --text-muted: #999;
+    --border-color: #e1e8ed;
+    --background-light: #f8f9fa;
+    --white: #ffffff;
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+    --border-radius: 12px;
+    --border-radius-sm: 8px;
+    --transition: all 0.3s ease;
 }
 
-form {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: center;
+.analytics-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background: linear-gradient(135deg, var(--light-blue) 0%, var(--white) 100%);
+    min-height: 100vh;
 }
 
-label {
-  background: #f0f0f0;
-  padding: 10px 20px;
-  border-radius: 20px;
-  cursor: pointer;
-  transition: background 0.3s;
+/* Filter Section */
+.filter-section {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
 }
 
-label input {
-  display: none;
+.filter-form {
+    display: flex;
+    justify-content: center;
 }
 
-label input:checked + span {
-  background: #6b48ff;
-  color: white;
-}
-
-select, input[type="number"], input[type="text"], button {
-  padding: 10px 20px;
-  border: 1px solid #ccc;
-  border-radius: 20px;
-  font-size: 16px;
-}
-
-button {
-  background: #6b48ff;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-
-@media (max-width: 600px) {
-  form {
-    flex-direction: column;
+.filter-group {
+    display: flex;
+    gap: 16px;
     align-items: center;
-  }
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
-/* Cards styling */
-.stat-card.kpi {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+.form-select, .form-input {
+    padding: 12px 16px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    font-size: 14px;
+    background: var(--white);
+    color: var(--text-primary);
+    transition: var(--transition);
+    min-width: 140px;
 }
 
-.stat-card.kpi:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+.form-select:focus, .form-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(107, 72, 255, 0.1);
 }
 
-.stat-value {
-  color: #4b4bff;
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+    color: var(--white);
+    border: none;
+    padding: 12px 24px;
+    border-radius: var(--border-radius-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    box-shadow: var(--shadow-sm);
 }
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* KPI Section */
+.kpi-section {
+    margin-bottom: 32px;
+}
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.kpi-card {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-color) 0%, var(--accent-color) 100%);
+}
+
+.kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white);
+    flex-shrink: 0;
+}
+
+.loans-icon { background: linear-gradient(135deg, var(--primary-color), var(--primary-light)); }
+.revenue-icon { background: linear-gradient(135deg, var(--success-color), #34ce57); }
+.default-icon { background: linear-gradient(135deg, var(--warning-color), #ffcd3c); }
+.portfolio-icon { background: linear-gradient(135deg, var(--secondary-color), var(--accent-color)); }
+
+.kpi-content {
+    flex: 1;
+}
+
+.kpi-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+    margin-bottom: 4px;
+}
+
+.kpi-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Error Section */
+.error-section {
+    margin-bottom: 24px;
+}
+
+.error-alert {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: var(--danger-color);
+    padding: 16px 20px;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid #fca5a5;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 500;
+}
+
+/* Loan Reason Section */
+.loan-reason-section {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    padding: 24px;
+    margin-bottom: 32px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+}
+
+.loan-reason-group {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.form-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    font-size: 16px;
+}
+
+.input-group {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+}
+
+.input-group .form-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, var(--secondary-color) 0%, var(--accent-color) 100%);
+    color: var(--white);
+    border: none;
+    padding: 12px 20px;
+    border-radius: var(--border-radius-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(135deg, #3557cc 0%, #6bb6e8 100%);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Charts Section */
+.charts-section {
+    display: grid;
+    gap: 32px;
+}
+
+.chart-container {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.chart-container:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.chart-wrapper {
+    padding: 20px;
+}
+
+.chart-placeholder {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+}
+
+.chart-placeholder svg {
+    opacity: 0.5;
+    margin-bottom: 16px;
+}
+
+.chart-placeholder h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.chart-placeholder p {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .analytics-container {
+        padding: 16px;
+    }
+
+    .filter-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .form-select, .form-input {
+        min-width: auto;
+        width: 100%;
+    }
+
+    .kpi-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .kpi-card {
+        padding: 20px;
+    }
+
+    .kpi-value {
+        font-size: 24px;
+    }
+
+    .input-group {
+        flex-direction: column;
+    }
+
+    .chart-wrapper {
+        padding: 16px;
+    }
+
+    .filter-section, .loan-reason-section {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .analytics-container {
+        padding: 12px;
+    }
+
+    .kpi-card {
+        padding: 16px;
+        gap: 12px;
+    }
+
+    .kpi-icon {
+        width: 40px;
+        height: 40px;
+    }
+
+    .kpi-value {
+        font-size: 20px;
+    }
+
+    .kpi-label {
+        font-size: 13px;
+    }
+
+    .chart-wrapper {
+        padding: 12px;
+    }
+
+    .chart-placeholder {
+        padding: 40px 16px;
+    }
+}
+
+/* Animation for loading states */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.loading {
+    animation: pulse 2s infinite;
+}
+
+/* Utility classes */
+.text-center { text-align: center; }
+.text-muted { color: var(--text-muted); }
+.text-danger { color: var(--danger-color); }
+.py-4 { padding: 20px 0; }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const labels = document.querySelectorAll('label');
-  labels.forEach(label => {
-    label.addEventListener('click', function() {
-      const radio = this.querySelector('input');
-      radio.checked = true;
+    // Auto-submit form on year input (with debounce)
+    const yearInput = document.querySelector('input[name="year"]');
+    if (yearInput) {
+        let timeout;
+        yearInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                if (this.value.length === 4 && /^\d{4}$/.test(this.value)) {
+                    this.closest('form').submit();
+                }
+            }, 1000);
+        });
+    }
+
+    // Enhanced form validation
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const yearInput = this.querySelector('input[name="year"]');
+            if (yearInput && yearInput.value) {
+                const year = parseInt(yearInput.value);
+                const currentYear = new Date().getFullYear();
+                if (year < 2000 || year > currentYear + 1) {
+                    e.preventDefault();
+                    alert('Please enter a valid year between 2000 and ' + (currentYear + 1));
+                    return;
+                }
+            }
+
+            // Add loading state
+            const submitBtn = this.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.innerHTML = '<span class="loading">Loading...</span>';
+                submitBtn.disabled = true;
+            }
+        });
     });
-  });
+
+    // Add smooth scrolling to charts when they load
+    const chartContainers = document.querySelectorAll('.chart-container');
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '0';
+                entry.target.style.transform = 'translateY(20px)';
+                entry.target.style.transition = 'all 0.6s ease';
+
+                setTimeout(() => {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }, 100);
+
+                observer.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.1 });
+
+    chartContainers.forEach(container => {
+        observer.observe(container);
+    });
 });
 </script>
 

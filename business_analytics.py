@@ -22,6 +22,20 @@ class BusinessAnalytics:
         except Exception as e:
             raise ValueError(f"Failed to create Supabase client: {str(e)}")
 
+    # Define consistent color scheme matching your white/blue theme
+    def get_color_palette(self):
+        return {
+            'primary': '#6b48ff',      # Your main purple/blue
+            'secondary': '#4169E1',    # Royal blue
+            'accent': '#87CEEB',       # Sky blue
+            'light': '#E6F3FF',        # Very light blue
+            'success': '#28a745',      # Green for positive metrics
+            'warning': '#ffc107',      # Yellow for warnings
+            'info': '#17a2b8',         # Teal for info
+            'gradient_start': '#6b48ff',
+            'gradient_end': '#87CEEB'
+        }
+
     def validate_year(self, year):
         if not isinstance(year, int):
             try:
@@ -317,17 +331,39 @@ class BusinessAnalytics:
             print(f"Error generating interest vs transaction costs data: {str(e)}")
             return {}
 
-    def loan_repayments_vs_discount(self, gender, year, business_id):
-        """Returns data of total_repaid_loans vs total_discounts for a certain period"""
+    def loan_repayments_vs_expenses(self, gender, year, business_id):
+        """Returns data of total_repaid_loans vs total_expenses (including discounts) for a certain period"""
         try:
+            print(f"DEBUG: Starting with gender={gender}, year={year}, business_id={business_id}")
+
             year = self.validate_year(year)
-            borrower_ids = self.get_borrower_ids(gender, business_id)
+            print(f"DEBUG: Validated year: {year}")
+
+            # Fix gender filter - handle 'All Genders' vs 'All'
+            filter_gender = 'All' if gender == 'All Genders' else gender
+            borrower_ids = self.get_borrower_ids(filter_gender, business_id)
+            print(f"DEBUG: Found borrower_ids: {borrower_ids}")
+
             if not borrower_ids:
+                print("DEBUG: No borrower IDs found - returning empty dict")
+                return {}
+
+            # Get ALL loan IDs for these borrowers (not time-limited)
+            all_loans_response = self.supabase.table('loans') \
+                .select('id') \
+                .eq('business_id', business_id) \
+                .in_('borrower_id', borrower_ids) \
+                .execute()
+
+            all_loan_ids = [loan['id'] for loan in all_loans_response.data if loan and 'id' in loan]
+            print(f"DEBUG: Total loan IDs for borrowers: {len(all_loan_ids)}")
+
+            if not all_loan_ids:
+                print("DEBUG: No loan IDs found for borrowers")
                 return {}
 
             monthly_data = {}
 
-            # Loop through all 12 months
             for month in range(1, 13):
                 month_name = [
                     'January', 'February', 'March', 'April', 'May', 'June',
@@ -336,43 +372,25 @@ class BusinessAnalytics:
 
                 try:
                     start, end = self.month_map(year)[month_name]
+                    print(f"DEBUG: Processing {month_name} - Date range: {start} to {end}")
 
-                    # First, get all loan_ids for the specified borrower_ids and business_id
-                    loans_response = self.supabase.table('loans') \
-                        .select('id') \
+                    # Get repayments MADE during this month (using created_at)
+                    repayments_response = self.supabase.table('repayments') \
+                        .select('amount, discount, created_at, loan_id') \
                         .eq('business_id', business_id) \
-                        .in_('borrower_id', borrower_ids) \
+                        .in_('loan_id', all_loan_ids) \
+                        .gte('created_at', start) \
+                        .lte('created_at', end) \
                         .execute()
 
-                    if not loans_response or not loans_response.data:
-                        monthly_data[month_name] = {
-                            'total_repaid': 0,
-                            'total_discount': 0
-                        }
-                        continue
-
-                    loan_ids = [loan['id'] for loan in loans_response.data if loan and 'id' in loan]
-                    if not loan_ids:
-                        monthly_data[month_name] = {
-                            'total_repaid': 0,
-                            'total_discount': 0
-                        }
-                        continue
-
-                    # Query the repayments table using the correct column names
-                    response = self.supabase.table('repayments') \
-                        .select('amount, discount') \
-                        .eq('business_id', business_id) \
-                        .in_('loan_id', loan_ids) \
-                        .gte('repayment_date', start) \
-                        .lte('repayment_date', end) \
-                        .execute()
+                    print(f"DEBUG: Repayments response for {month_name}: {repayments_response}")
+                    print(f"DEBUG: Repayments data for {month_name}: {repayments_response.data}")
 
                     total_repaid = 0
                     total_discount = 0
 
-                    if response and response.data:
-                        for row in response.data:
+                    if repayments_response and repayments_response.data:
+                        for row in repayments_response.data:
                             if not row:
                                 continue
                             try:
@@ -380,265 +398,326 @@ class BusinessAnalytics:
                                 discount = float(row.get('discount') or 0)
                                 total_repaid += amount
                                 total_discount += discount
+                                print(f"DEBUG: Processing repayment - amount: {amount}, discount: {discount}")
                             except (ValueError, TypeError) as calc_error:
                                 print(f"Error calculating repayment values: {str(calc_error)}")
                                 continue
+                    else:
+                        print(f"DEBUG: No repayments found for {month_name}")
+
+                    # Get expense data from the expenses table for the same period (using created_at)
+                    print(f"DEBUG: Querying expenses for date range: {start} to {end}")
+
+                    expenses_response = self.supabase.table('expenses') \
+                        .select('amount, created_at') \
+                        .eq('business_id', business_id) \
+                        .gte('created_at', start) \
+                        .lte('created_at', end) \
+                        .execute()
+
+                    print(f"DEBUG: Expenses response for {month_name}: {expenses_response}")
+                    print(f"DEBUG: Expenses data for {month_name}: {expenses_response.data}")
+
+                    total_expense = 0
+                    if expenses_response and expenses_response.data:
+                        for row in expenses_response.data:
+                            try:
+                                expense_amount = float(row.get('amount') or 0)
+                                total_expense += expense_amount
+                                print(f"DEBUG: Processing expense - amount: {expense_amount}")
+                            except (ValueError, TypeError) as expense_error:
+                                print(f"DEBUG: Error processing expense: {expense_error}")
+                                continue
+                    else:
+                        print(f"DEBUG: No expenses found for {month_name}")
+
+                    # Include the discount as an expense
+                    total_expenses_combined = total_expense + total_discount
+
+                    print(f"DEBUG: {month_name} totals - repaid: {total_repaid}, expenses: {total_expenses_combined}")
 
                     monthly_data[month_name] = {
                         'total_repaid': float(total_repaid),
-                        'total_discount': float(total_discount)
+                        'total_expenses': float(total_expenses_combined)
                     }
 
                 except Exception as month_error:
                     print(f"Error processing {month_name}: {str(month_error)}")
+                    import traceback
+                    traceback.print_exc()
                     monthly_data[month_name] = {
                         'total_repaid': 0,
-                        'total_discount': 0
+                        'total_expenses': 0
                     }
 
+            print(f"DEBUG: Final monthly_data: {monthly_data}")
             return monthly_data
+
         except Exception as e:
-            print(f"Error generating loan repayments vs discount data: {str(e)}")
+            print(f"Error generating loan repayments vs expense data: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return {}
 
     def loan_reason_trend_chart(self, gender, year, loan_reason, business_id):
-        """Returns an HTML string of a line chart showing trend for a specific loan reason across months"""
+        """Returns an HTML string of a smooth area chart showing trend for a specific loan reason"""
         try:
             trend_data = self.loan_reason_trend_data(gender, year, loan_reason, business_id)
+            colors = self.get_color_palette()
 
-            # Check if data is empty
             if not trend_data:
-                return "<div>No loan data available for the specified filters.</div>"
+                return "<div class='text-center py-4 text-muted'>No loan data available for the specified filters.</div>"
 
-            # Convert dictionary to lists for plotting
             months = list(trend_data.keys())
             counts = list(trend_data.values())
 
-            # Validate data
             if not months or not counts:
-                return "<div>No data available to generate chart.</div>"
+                return "<div class='text-center py-4 text-muted'>No data available to generate chart.</div>"
 
-            # Create line chart
-            fig = go.Figure(data=[go.Scatter(
+            # Create area chart with gradient fill
+            fig = go.Figure()
+
+            # Add area trace
+            fig.add_trace(go.Scatter(
                 x=months,
                 y=counts,
                 mode='lines+markers',
-                line=dict(color='#1f77b4', width=3),
-                marker=dict(size=8, color='#1f77b4'),
-                text=counts,
-                textposition='top center',
-                textfont=dict(size=10),
+                fill='tonexty',
+                fillcolor=f'rgba(107, 72, 255, 0.1)',  # Light fill
+                line=dict(color=colors['primary'], width=3, shape='spline', smoothing=1.3),
+                marker=dict(
+                    size=8,
+                    color=colors['primary'],
+                    symbol='circle',
+                    line=dict(width=2, color='white')
+                ),
                 name=f'{loan_reason}',
-                hovertemplate='<b>%{x}</b><br>Loans: %{y}<extra></extra>'
-            )])
+                hovertemplate='<b>%{x}</b><br>Loans: %{y}<br><extra></extra>',
+                showlegend=False
+            ))
 
-            # Update layout
+            # Add a baseline at y=0 for the fill
+            fig.add_trace(go.Scatter(
+                x=months,
+                y=[0] * len(months),
+                mode='lines',
+                line=dict(color='rgba(0,0,0,0)'),
+                showlegend=False,
+                hoverinfo='skip'
+            ))
+
+            # Update layout for mobile-friendly design
             fig.update_layout(
                 title={
-                    'text': f'Loan Trend for "{loan_reason}" - {gender.title()} ({year})',
+                    'text': f'Loan Trend: {loan_reason}<br><span style="font-size:12px; color:#666;">{gender.title()} - {year}</span>',
                     'x': 0.5,
                     'xanchor': 'center',
-                    'font': {'size': 16, 'family': 'Arial, sans-serif'}
+                    'font': {'size': 14, 'family': 'Arial, sans-serif', 'color': '#333'}
                 },
-                xaxis_title='Month',
+                xaxis_title='',
                 yaxis_title='Number of Loans',
-                font=dict(size=10),
-                margin=dict(l=60, r=20, t=60, b=80),
+                font=dict(size=11, color='#666'),
+                margin=dict(l=50, r=20, t=80, b=60),
+                height=350,  # Fixed height for consistency
                 xaxis=dict(
-                    tickangle=45,  # Rotate x-axis labels for better readability
-                    tickfont=dict(size=9)
+                    tickangle=0,
+                    tickfont=dict(size=10),
+                    showgrid=True,
+                    gridcolor='rgba(0,0,0,0.1)',
+                    gridwidth=1
                 ),
                 yaxis=dict(
                     tickfont=dict(size=10),
-                    rangemode='tozero'  # Start y-axis from 0
+                    rangemode='tozero',
+                    showgrid=True,
+                    gridcolor='rgba(0,0,0,0.1)',
+                    gridwidth=1
                 ),
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
                 showlegend=False
             )
 
-            # Convert to HTML string
-            html_string = fig.to_html(include_plotlyjs='cdn', full_html=False, config={'responsive': True})
-            return html_string
+            return fig.to_html(include_plotlyjs='cdn', full_html=False, config={
+                'responsive': True,
+                'displayModeBar': False,
+                'scrollZoom': False
+            })
         except Exception as e:
             error_msg = f"Error generating chart: {str(e)}"
             print(error_msg)
-            return f"<div>{error_msg}</div>"
+            return f"<div class='text-center py-4 text-danger'>{error_msg}</div>"
 
     def interest_vs_transaction_costs_chart(self, gender, year, business_id):
-        """Returns an HTML string of a clustered bar chart comparing interest earned vs transaction costs"""
+        """Returns an HTML string of a mobile-friendly stacked area chart"""
         try:
             chart_data = self.interest_vs_transaction_costs_data(gender, year, business_id)
+            colors = self.get_color_palette()
 
-            # Check if data is empty
             if not chart_data:
-                return "<div>No financial data available for the specified filters.</div>"
+                return "<div class='text-center py-4 text-muted'>No financial data available for the specified filters.</div>"
 
-            # Convert dictionary to lists for plotting
             months = list(chart_data.keys())
             interest_values = [chart_data[month]['total_interest'] for month in months]
             transaction_costs = [chart_data[month]['total_transaction_costs'] for month in months]
 
-            # Validate data
             if not months or len(interest_values) == 0 or len(transaction_costs) == 0:
-                return "<div>Insufficient data available to generate chart.</div>"
+                return "<div class='text-center py-4 text-muted'>Insufficient data available to generate chart.</div>"
 
-            # Create clustered bar chart
+            # Create stacked area chart
             fig = go.Figure()
 
-            # Add Interest Earned bars
-            fig.add_trace(go.Bar(
-                x=months,
-                y=interest_values,
-                name='Interest Earned',
-                marker_color='#2E8B57',  # Sea Green
-                text=[f'${val:,.0f}' if val > 0 else '' for val in interest_values],
-                textposition='outside',
-                textfont=dict(size=9),
-                hovertemplate='<b>%{x}</b><br>Interest Earned: $%{y:,.2f}<extra></extra>'
-            ))
-
-            # Add Transaction Costs bars
-            fig.add_trace(go.Bar(
+            # Add transaction costs (bottom layer)
+            fig.add_trace(go.Scatter(
                 x=months,
                 y=transaction_costs,
+                mode='lines',
+                fill='tonexty',
+                fillcolor='rgba(255, 99, 132, 0.3)',
+                line=dict(color='#ff6384', width=2),
                 name='Transaction Costs',
-                marker_color='#DC143C',  # Crimson
-                text=[f'${val:,.0f}' if val > 0 else '' for val in transaction_costs],
-                textposition='outside',
-                textfont=dict(size=9),
                 hovertemplate='<b>%{x}</b><br>Transaction Costs: $%{y:,.2f}<extra></extra>'
             ))
 
-            # Update layout
+            # Add interest earned (top layer)
+            fig.add_trace(go.Scatter(
+                x=months,
+                y=[i + t for i, t in zip(interest_values, transaction_costs)],
+                mode='lines',
+                fill='tonexty',
+                fillcolor=f'rgba(107, 72, 255, 0.3)',
+                line=dict(color=colors['primary'], width=2),
+                name='Interest Earned',
+                hovertemplate='<b>%{x}</b><br>Interest Earned: $%{customdata:,.2f}<extra></extra>',
+                customdata=interest_values
+            ))
+
+            # Add baseline
+            fig.add_trace(go.Scatter(
+                x=months,
+                y=[0] * len(months),
+                mode='lines',
+                line=dict(color='rgba(0,0,0,0)'),
+                showlegend=False,
+                hoverinfo='skip'
+            ))
+
             fig.update_layout(
                 title={
-                    'text': f'Interest Earned vs Transaction Costs - {gender.title()} ({year})',
+                    'text': f'Revenue Overview<br><span style="font-size:12px; color:#666;">{gender.title()} - {year}</span>',
                     'x': 0.5,
                     'xanchor': 'center',
-                    'font': {'size': 16, 'family': 'Arial, sans-serif'}
+                    'font': {'size': 14, 'family': 'Arial, sans-serif', 'color': '#333'}
                 },
-                xaxis_title='Month',
+                xaxis_title='',
                 yaxis_title='Amount ($)',
-                font=dict(size=10),
-                margin=dict(l=60, r=20, t=80, b=80),
+                font=dict(size=11, color='#666'),
+                margin=dict(l=60, r=20, t=80, b=60),
+                height=350,
                 xaxis=dict(
-                    tickangle=45,  # Rotate x-axis labels for better readability
-                    tickfont=dict(size=9)
+                    tickangle=0,
+                    tickfont=dict(size=10),
+                    showgrid=True,
+                    gridcolor='rgba(0,0,0,0.1)'
                 ),
                 yaxis=dict(
                     tickfont=dict(size=10),
-                    rangemode='tozero',  # Start y-axis from 0
-                    tickformat='$,.0f'  # Format y-axis as currency
+                    rangemode='tozero',
+                    tickformat='$,.0f',
+                    showgrid=True,
+                    gridcolor='rgba(0,0,0,0.1)'
                 ),
-                barmode='group',  # This creates the clustered/grouped bar effect
-                showlegend=True,
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
                 legend=dict(
                     orientation="h",
-                    yanchor="bottom",
-                    y=1.02,
-                    xanchor="right",
-                    x=1
-                ),
-                plot_bgcolor='rgba(0,0,0,0)',  # Transparent background
-                paper_bgcolor='rgba(0,0,0,0)'
+                    yanchor="top",
+                    y=-0.1,
+                    xanchor="center",
+                    x=0.5,
+                    font=dict(size=10)
+                )
             )
 
-            # Add grid lines for better readability
-            fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
-
-            # Convert to HTML string
-            html_string = fig.to_html(include_plotlyjs='cdn', full_html=False, config={'responsive': True})
-            return html_string
+            return fig.to_html(include_plotlyjs='cdn', full_html=False, config={
+                'responsive': True,
+                'displayModeBar': False,
+                'scrollZoom': False
+            })
         except Exception as e:
             error_msg = f"Error generating chart: {str(e)}"
             print(error_msg)
-            return f"<div>{error_msg}</div>"
+            return f"<div class='text-center py-4 text-danger'>{error_msg}</div>"
 
-    def loan_repayments_vs_discount_chart(self, gender, year, business_id):
-        """Returns an HTML string of a clustered bar chart comparing loan repayments vs discounts given"""
+    def loan_repayments_vs_expenses_chart(self, gender, year, business_id):
+        """Returns an HTML string of a mobile-friendly donut/pie chart comparing repayments and expenses"""
         try:
-            chart_data = self.loan_repayments_vs_discount(gender, year, business_id)
+            chart_data = self.loan_repayments_vs_expenses(gender, year, business_id)
+            colors = self.get_color_palette()
 
-            # Check if data is empty
             if not chart_data:
-                return "<div>No repayment data available for the specified filters.</div>"
+                return "<div class='text-center py-4 text-muted'>No repayment data available for the specified filters.</div>"
 
-            # Convert dictionary to lists for plotting
-            months = list(chart_data.keys())
-            repayment_values = [chart_data[month]['total_repaid'] for month in months]
-            discount_values = [chart_data[month]['total_discount'] for month in months]
+            # Calculate yearly totals
+            total_repaid = sum(chart_data[month]['total_repaid'] for month in chart_data)
+            total_expenses = sum(chart_data[month]['total_expenses'] for month in chart_data)
 
-            # Validate data
-            if not months or len(repayment_values) == 0 or len(discount_values) == 0:
-                return "<div>Insufficient data available to generate chart.</div>"
+            if total_repaid == 0 and total_expenses == 0:
+                return "<div class='text-center py-4 text-muted'>No repayment or expense activity for this period.</div>"
 
-            # Create clustered bar chart
-            fig = go.Figure()
+            # Create donut chart
+            fig = go.Figure(data=[go.Pie(
+                labels=['Total Repaid', 'Total Expenses'],
+                values=[total_repaid, total_expenses],
+                hole=0.4,
+                marker=dict(
+                    colors=[colors['primary'], colors['accent']],
+                    line=dict(color='white', width=2)
+                ),
+                textinfo='label+percent+value',
+                texttemplate='<b>%{label}</b><br>%{percent}<br>$%{value:,.0f}',
+                textfont=dict(size=11),
+                hovertemplate='<b>%{label}</b><br>Amount: $%{value:,.2f}<br>Percentage: %{percent}<extra></extra>'
+            )])
 
-            # Add Total Repaid bars
-            fig.add_trace(go.Bar(
-                x=months,
-                y=repayment_values,
-                name='Total Repaid',
-                marker_color='#4169E1',  # Royal Blue
-                text=[f'${val:,.0f}' if val > 0 else '' for val in repayment_values],
-                textposition='outside',
-                textfont=dict(size=9),
-                hovertemplate='<b>%{x}</b><br>Total Repaid: $%{y:,.2f}<extra></extra>'
-            ))
+            # Add center text
+            fig.add_annotation(
+                text=f"<b>Total Activity</b><br>${(total_repaid + total_expenses):,.0f}",
+                x=0.5, y=0.5,
+                font=dict(size=12, color='#333'),
+                showarrow=False
+            )
 
-            # Add Discounts Given bars
-            fig.add_trace(go.Bar(
-                x=months,
-                y=discount_values,
-                name='Discounts Given',
-                marker_color='#FF6347',  # Tomato
-                text=[f'${val:,.0f}' if val > 0 else '' for val in discount_values],
-                textposition='outside',
-                textfont=dict(size=9),
-                hovertemplate='<b>%{x}</b><br>Discounts Given: $%{y:,.2f}<extra></extra>'
-            ))
-
-            # Update layout
             fig.update_layout(
                 title={
-                    'text': f'Loan Repayments vs Discounts Given - {gender.title()} ({year})',
+                    'text': f'Repayments vs Expenses<br><span style="font-size:12px; color:#666;">{gender.title()} - {year}</span>',
                     'x': 0.5,
                     'xanchor': 'center',
-                    'font': {'size': 16, 'family': 'Arial, sans-serif'}
+                    'font': {'size': 14, 'family': 'Arial, sans-serif', 'color': '#333'}
                 },
-                xaxis_title='Month',
-                yaxis_title='Amount ($)',
-                font=dict(size=10),
-                margin=dict(l=60, r=20, t=80, b=80),
-                xaxis=dict(
-                    tickangle=45,  # Rotate x-axis labels for better readability
-                    tickfont=dict(size=9)
-                ),
-                yaxis=dict(
-                    tickfont=dict(size=10),
-                    rangemode='tozero',  # Start y-axis from 0
-                    tickformat='$,.0f'  # Format y-axis as currency
-                ),
-                barmode='group',  # This creates the clustered/grouped bar effect
+                font=dict(size=11, color='#666'),
+                margin=dict(l=20, r=20, t=80, b=60),
+                height=350,
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
                 showlegend=True,
                 legend=dict(
                     orientation="h",
-                    yanchor="bottom",
-                    y=1.02,
-                    xanchor="right",
-                    x=1
-                ),
-                plot_bgcolor='rgba(0,0,0,0)',  # Transparent background
-                paper_bgcolor='rgba(0,0,0,0)'
+                    yanchor="top",
+                    y=-0.05,
+                    xanchor="center",
+                    x=0.5,
+                    font=dict(size=10)
+                )
             )
 
-            # Add grid lines for better readability
-            fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
-
-            # Convert to HTML string
-            html_string = fig.to_html(include_plotlyjs='cdn', full_html=False, config={'responsive': True})
-            return html_string
+            return fig.to_html(include_plotlyjs='cdn', full_html=False, config={
+                'responsive': True,
+                'displayModeBar': False,
+                'scrollZoom': False
+            })
         except Exception as e:
             error_msg = f"Error generating chart: {str(e)}"
             print(error_msg)
-            return f"<div>{error_msg}</div>"
+            return f"<div class='text-center py-4 text-danger'>{error_msg}</div>"
+
